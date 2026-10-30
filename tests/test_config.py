@@ -20,6 +20,8 @@ BLENDER_MODULES = (
     ROOT / "engine" / "blender" / "face.py",
     ROOT / "engine" / "blender" / "hair.py",
     ROOT / "engine" / "blender" / "outfit.py",
+    ROOT / "engine" / "blender" / "skin.py",
+    ROOT / "engine" / "blender" / "validation.py",
     ROOT / "engine" / "blender" / "character_builder.py",
     ROOT / "scripts" / "build_character.py",
 )
@@ -122,6 +124,19 @@ def test_pure_python_core_does_not_import_bpy() -> None:
     assert core_files
     for path in core_files:
         assert "import bpy" not in path.read_text(encoding="utf-8")
+
+
+
+def test_character_build_has_cpu_validation_render_mode() -> None:
+    cli_source = (ROOT / "scripts" / "build_character.py").read_text(encoding="utf-8")
+    builder_source = (
+        ROOT / "engine" / "blender" / "character_builder.py"
+    ).read_text(encoding="utf-8")
+
+    assert "--silhouette-only" in cli_source
+    assert "render_color_preview=not args.skip_render and not args.silhouette_only" in cli_source
+    assert "validate_character_scene()" in builder_source
+    assert "unify_skin_surface(" in builder_source
 
 
 def test_character_generator_does_not_require_external_base_mesh() -> None:
