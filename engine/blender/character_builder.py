@@ -1,7 +1,8 @@
-"""Procedural Blender blockout for the first stylized cinematic character.
+"""Build Prototype 001 from an external rigged humanoid base mesh.
 
-Run this module inside Blender's bundled Python runtime. It intentionally does not
-attempt to create production facial/body rigs; those are separate milestones.
+The source mesh is intentionally external: download the Quaternius Standard CC0
+pack yourself and pass the female base mesh path. This keeps third-party binary
+assets out of the public Git repository.
 """
 
 from __future__ import annotations
@@ -12,35 +13,62 @@ from typing import Any
 import bpy
 from mathutils import Vector
 
+from engine.blender.base_mesh import import_humanoid_base
+from engine.blender.body_topology import build_bodytopo_garment
+from engine.blender.footwear import build_slippers
+from engine.blender.grooming import build_long_hair_blockout
 from engine.core.config import CharacterConfig
+from engine.core.garment_rules import keep_crop_top, keep_shorts, keep_socks
 
 
-def _rgba(hex_color: str) -> tuple[float, float, float, float]:
+def _linear_rgba(hex_color: str) -> tuple[float, float, float, float]:
     value = hex_color.lstrip("#")
-    return (
-        int(value[0:2], 16) / 255.0,
-        int(value[2:4], 16) / 255.0,
-        int(value[4:6], 16) / 255.0,
-        1.0,
-    )
+    srgb = [int(value[index : index + 2], 16) / 255.0 for index in (0, 2, 4)]
+    linear = [
+        channel / 12.92 if channel <= 0.04045 else ((channel + 0.055) / 1.055) ** 2.4
+        for channel in srgb
+    ]
+    return (linear[0], linear[1], linear[2], 1.0)
 
 
 def _material(
     name: str,
-    color: str,
+    hex_color: str,
     *,
-    roughness: float = 0.55,
-    metallic: float = 0.0,
+    roughness: float = 0.68,
+    subsurface: float = 0.0,
 ) -> bpy.types.Material:
-    material = bpy.data.materials.get(name) or bpy.data.materials.new(name)
-    material.diffuse_color = _rgba(color)
+    rgba = _linear_rgba(hex_color)
+    material = bpy.data.materials.new(name=name)
+    material.diffuse_color = rgba
     material.use_nodes = True
     principled = material.node_tree.nodes.get("Principled BSDF")
     if principled is not None:
-        principled.inputs["Base Color"].default_value = _rgba(color)
+        principled.inputs["Base Color"].default_value = rgba
         principled.inputs["Roughness"].default_value = roughness
-        principled.inputs["Metallic"].default_value = metallic
+        subsurface_socket = principled.inputs.get("Subsurface Weight")
+        if subsurface_socket is not None:
+            subsurface_socket.default_value = subsurface
     return material
+
+
+def _replace_body_material(body: bpy.types.Object, config: CharacterConfig) -> None:
+    skin = _material(
+        "Skin_Stylized_Warm",
+        config.face.skin_color,
+        roughness=0.58,
+        subsurface=0.035,
+    )
+    body.data.materials.clear()
+    body.data.materials.append(skin)
+    for polygon in body.data.polygons:
+        polygon.material_index = 0
+
+
+def _new_collection(name: str) -> bpy.types.Collection:
+    collection = bpy.data.collections.new(name)
+    bpy.context.scene.collection.children.link(collection)
+    return collection
 
 
 def _move_to_collection(obj: bpy.types.Object, collection: bpy.types.Collection) -> None:
@@ -49,418 +77,175 @@ def _move_to_collection(obj: bpy.types.Object, collection: bpy.types.Collection)
     collection.objects.link(obj)
 
 
-def _ellipsoid(
-    name: str,
-    location: tuple[float, float, float],
-    scale: tuple[float, float, float],
-    material: bpy.types.Material,
-    collection: bpy.types.Collection,
-    *,
-    segments: int = 32,
-    rings: int = 24,
-) -> bpy.types.Object:
-    bpy.ops.mesh.primitive_uv_sphere_add(
-        segments=segments,
-        ring_count=rings,
-        radius=1.0,
-        location=location,
+def _world_bounds(body: bpy.types.Object) -> tuple[Vector, Vector]:
+    corners = [body.matrix_world @ Vector(corner) for corner in body.bound_box]
+    minimum = Vector(
+        (
+            min(point.x for point in corners),
+            min(point.y for point in corners),
+            min(point.z for point in corners),
+        )
     )
-    obj = bpy.context.object
-    obj.name = name
-    obj.scale = scale
-    obj.data.materials.append(material)
-    _move_to_collection(obj, collection)
-    bpy.ops.object.shade_smooth()
-    return obj
-
-
-def _capsule(
-    name: str,
-    start: tuple[float, float, float],
-    end: tuple[float, float, float],
-    radius: tuple[float, float],
-    material: bpy.types.Material,
-    collection: bpy.types.Collection,
-) -> bpy.types.Object:
-    start_vector = Vector(start)
-    end_vector = Vector(end)
-    direction = end_vector - start_vector
-    if direction.length < 1e-5:
-        raise ValueError(f"Capsule '{name}' requires two distinct endpoints")
-
-    obj = _ellipsoid(
-        name,
-        tuple((start_vector + end_vector) / 2.0),
-        (radius[0], radius[1], direction.length / 2.0 + max(radius)),
-        material,
-        collection,
+    maximum = Vector(
+        (
+            max(point.x for point in corners),
+            max(point.y for point in corners),
+            max(point.z for point in corners),
+        )
     )
-    obj.rotation_mode = "QUATERNION"
-    obj.rotation_quaternion = direction.to_track_quat("Z", "Y")
-    return obj
+    return minimum, maximum
 
 
-def _curve(
-    name: str,
-    points: list[tuple[float, float, float]],
-    material: bpy.types.Material,
-    collection: bpy.types.Collection,
-    *,
-    bevel: float,
-    resolution: int = 12,
-) -> bpy.types.Object:
-    curve_data = bpy.data.curves.new(name=f"{name}_Curve", type="CURVE")
-    curve_data.dimensions = "3D"
-    curve_data.resolution_u = resolution
-    curve_data.bevel_depth = bevel
-    curve_data.bevel_resolution = 4
-    spline = curve_data.splines.new("BEZIER")
-    spline.bezier_points.add(len(points) - 1)
-    for point, coordinate in zip(spline.bezier_points, points, strict=True):
-        point.co = coordinate
-        point.handle_left_type = "AUTO"
-        point.handle_right_type = "AUTO"
-
-    obj = bpy.data.objects.new(name, curve_data)
-    collection.objects.link(obj)
-    obj.data.materials.append(material)
-    return obj
-
-
-def _beveled_box(
-    name: str,
-    location: tuple[float, float, float],
-    scale: tuple[float, float, float],
-    material: bpy.types.Material,
-    collection: bpy.types.Collection,
-    *,
-    bevel: float = 0.06,
-) -> bpy.types.Object:
-    bpy.ops.mesh.primitive_cube_add(size=1.0, location=location)
-    obj = bpy.context.object
-    obj.name = name
-    obj.dimensions = (scale[0] * 2.0, scale[1] * 2.0, scale[2] * 2.0)
-    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
-    modifier = obj.modifiers.new(name="Soft_Edges", type="BEVEL")
-    modifier.width = bevel
-    modifier.segments = 5
-    obj.modifiers.new(name="Weighted_Normals", type="WEIGHTED_NORMAL")
-    obj.data.materials.append(material)
-    _move_to_collection(obj, collection)
-    return obj
-
-
-def _look_at(obj: bpy.types.Object, target: tuple[float, float, float]) -> None:
-    direction = Vector(target) - obj.location
+def _look_at(obj: bpy.types.Object, target: Vector) -> None:
+    direction = target - obj.location
     obj.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
 
 
-def _build_hair(
-    config: CharacterConfig,
+def _setup_studio(
+    body: bpy.types.Object,
     collection: bpy.types.Collection,
-    hair_material: bpy.types.Material,
-    highlight_material: bpy.types.Material,
-    head_scale: float,
-) -> None:
-    _ellipsoid(
-        "Hair_Cap",
-        (0.0, 0.055, 4.66),
-        (0.625 * head_scale, 0.53, 0.76 * head_scale),
-        hair_material,
-        collection,
-    )
-    _ellipsoid(
-        "Hair_Back_Mass",
-        (0.0, 0.16, 3.95),
-        (0.55, 0.39, 0.91),
-        hair_material,
-        collection,
-    )
-
-    # Long side curtains form a readable silhouette before detailed grooming.
-    for side in (-1.0, 1.0):
-        _ellipsoid(
-            f"Hair_Side_Mass_{'L' if side < 0 else 'R'}",
-            (side * 0.49, 0.07, 3.82),
-            (0.17, 0.22, 0.88),
-            hair_material,
-            collection,
-        )
-        for index in range(7):
-            offset = index * 0.035
-            x = side * (0.39 + offset)
-            end_x = side * (0.47 + offset * 0.80)
-            strand_material = highlight_material if index in (1, 5) else hair_material
-            _curve(
-                f"Hair_Lock_{'L' if side < 0 else 'R'}_{index:02d}",
-                [
-                    (side * 0.10, -0.02, 5.18 - offset * 0.30),
-                    (side * 0.33, 0.00, 4.82),
-                    (x, 0.06, 4.25),
-                    (end_x, 0.13, 3.52),
-                    (end_x - side * 0.04, 0.13, 2.92 + offset * 0.30),
-                ],
-                strand_material,
-                collection,
-                bevel=0.035 + (index % 3) * 0.004,
-            )
-
-    # A swept fringe gives the part a clear direction without hiding the eyes.
-    direction = -1.0 if config.hair.part == "left" else 1.0
-    if config.hair.part == "center":
-        direction = 0.25
-    _curve(
-        "Hair_Swept_Front",
-        [
-            (-0.10, -0.36, 5.13),
-            (0.05, -0.47, 5.08),
-            (direction * 0.31, -0.43, 4.99),
-            (direction * 0.43, -0.34, 4.83),
-        ],
-        highlight_material,
-        collection,
-        bevel=0.055,
-    )
-
-
-def _build_face(
-    config: CharacterConfig,
-    collection: bpy.types.Collection,
-    skin: bpy.types.Material,
-    eye_white: bpy.types.Material,
-    iris: bpy.types.Material,
-    pupil: bpy.types.Material,
-    highlight: bpy.types.Material,
-    brow: bpy.types.Material,
-    mouth: bpy.types.Material,
-) -> None:
-    eye_scale = config.proportions.eye_scale
-    for side in (-1.0, 1.0):
-        x = side * 0.205
-        _ellipsoid(
-            f"Eye_White_{'L' if side < 0 else 'R'}",
-            (x, -0.435, 4.73),
-            (0.137 * eye_scale, 0.075, 0.165 * eye_scale),
-            eye_white,
-            collection,
-        )
-        _ellipsoid(
-            f"Iris_{'L' if side < 0 else 'R'}",
-            (x + 0.015, -0.501, 4.72),
-            (0.073 * eye_scale, 0.035, 0.092 * eye_scale),
-            iris,
-            collection,
-        )
-        _ellipsoid(
-            f"Pupil_{'L' if side < 0 else 'R'}",
-            (x + 0.020, -0.531, 4.72),
-            (0.037 * eye_scale, 0.020, 0.057 * eye_scale),
-            pupil,
-            collection,
-        )
-        _ellipsoid(
-            f"Eye_Glint_{'L' if side < 0 else 'R'}",
-            (x - 0.010, -0.550, 4.77),
-            (0.022, 0.012, 0.026),
-            highlight,
-            collection,
-            segments=16,
-            rings=12,
-        )
-        _curve(
-            f"Eyebrow_{'L' if side < 0 else 'R'}",
-            [
-                (x - 0.115, -0.438, 4.94),
-                (x, -0.475, 4.985),
-                (x + 0.105, -0.438, 4.95),
-            ],
-            brow,
-            collection,
-            bevel=0.028,
-        )
-
-    _ellipsoid(
-        "Nose",
-        (0.0, -0.515, 4.57),
-        (0.075, 0.075, 0.095),
-        skin,
-        collection,
-        segments=24,
-        rings=16,
-    )
-    _curve(
-        "Smile_Line",
-        [
-            (-0.14, -0.505, 4.43),
-            (-0.07, -0.535, 4.395),
-            (0.0, -0.542, 4.39),
-            (0.07, -0.535, 4.395),
-            (0.14, -0.505, 4.43),
-        ],
-        mouth,
-        collection,
-        bevel=0.018,
-    )
-
-
-def _build_body(
-    config: CharacterConfig,
-    collection: bpy.types.Collection,
-    materials: dict[str, bpy.types.Material],
-) -> None:
-    skin = materials["skin"]
-    top = materials["top"]
-    shorts = materials["shorts"]
-    socks = materials["socks"]
-    slippers = materials["slippers"]
-    sole = materials["sole"]
-
-    head_scale = config.proportions.head_to_body_ratio / 0.46
-    _ellipsoid("Pelvis", (0.0, 0.0, 2.72), (0.37, 0.26, 0.30), skin, collection)
-    _ellipsoid("Shorts_Main", (0.0, 0.0, 2.78), (0.45, 0.29, 0.32), shorts, collection)
-    _ellipsoid("Shorts_Waistband", (0.0, -0.005, 3.02), (0.435, 0.282, 0.075), shorts, collection)
-
-    _capsule("Leg_Support_Thigh", (-0.17, 0.0, 2.66), (-0.18, 0.0, 1.48), (0.18, 0.17), skin, collection)
-    _capsule("Leg_Support_Calf", (-0.18, 0.0, 1.52), (-0.16, -0.015, 0.39), (0.135, 0.13), skin, collection)
-    _capsule("Leg_Bent_Thigh", (0.17, 0.015, 2.66), (0.37, -0.015, 1.70), (0.17, 0.16), skin, collection)
-    _capsule("Leg_Bent_Calf", (0.37, -0.015, 1.70), (0.08, 0.12, 1.02), (0.125, 0.12), skin, collection)
-
-    _ellipsoid("Sock_Support", (-0.16, -0.015, 0.34), (0.145, 0.14, 0.23), socks, collection)
-    _ellipsoid("Sock_Bent", (0.08, 0.12, 1.04), (0.13, 0.125, 0.20), socks, collection)
-    _ellipsoid("Slipper_Sole_Support", (-0.16, -0.19, 0.14), (0.22, 0.39, 0.075), sole, collection)
-    _ellipsoid("Slipper_Upper_Support", (-0.16, -0.15, 0.25), (0.205, 0.30, 0.16), slippers, collection)
-    _ellipsoid("Slipper_Sole_Bent", (0.08, -0.015, 0.86), (0.20, 0.34, 0.07), sole, collection)
-    _ellipsoid("Slipper_Upper_Bent", (0.08, 0.005, 0.97), (0.185, 0.26, 0.14), slippers, collection)
-
-    _ellipsoid("Torso_Base", (0.0, 0.0, 3.58), (0.40, 0.245, 0.62), skin, collection)
-    _ellipsoid("Top_Main", (0.0, -0.005, 3.67), (0.425, 0.265, 0.43), top, collection)
-    _ellipsoid("Neck", (0.0, -0.005, 4.12), (0.17, 0.16, 0.25), skin, collection)
-
-    _capsule("Arm_Left_Upper", (-0.37, 0.0, 3.90), (-0.54, -0.02, 3.38), (0.12, 0.12), skin, collection)
-    _capsule("Arm_Left_Forearm", (-0.54, -0.02, 3.38), (-0.54, -0.14, 3.02), (0.105, 0.10), skin, collection)
-    _ellipsoid("Hand_Left", (-0.54, -0.15, 2.92), (0.12, 0.085, 0.15), skin, collection)
-    _ellipsoid("Sleeve_Left", (-0.40, -0.005, 3.83), (0.17, 0.25, 0.20), top, collection)
-
-    if config.pose.style == "mirror_selfie":
-        _capsule("Arm_Right_Upper", (0.37, 0.0, 3.91), (0.53, -0.10, 4.24), (0.12, 0.12), skin, collection)
-        _capsule("Arm_Right_Forearm", (0.53, -0.10, 4.24), (0.31, -0.40, 4.60), (0.095, 0.09), skin, collection)
-        _ellipsoid("Hand_Right", (0.24, -0.52, 4.62), (0.13, 0.085, 0.17), skin, collection)
-        _ellipsoid("Sleeve_Right", (0.40, -0.015, 3.86), (0.17, 0.25, 0.20), top, collection)
-        if config.pose.phone_visible:
-            phone = _beveled_box(
-                "Phone_Body",
-                (0.18, -0.625, 4.66),
-                (0.17, 0.045, 0.28),
-                materials["phone"],
-                collection,
-                bevel=0.035,
-            )
-            phone.rotation_euler[1] = -0.08
-            _ellipsoid(
-                "Phone_Camera_Lens",
-                (0.28, -0.679, 4.87),
-                (0.026, 0.008, 0.026),
-                materials["phone_lens"],
-                collection,
-                segments=16,
-                rings=12,
-            )
-    else:
-        _capsule("Arm_Right_Upper", (0.37, 0.0, 3.91), (0.52, -0.02, 3.38), (0.12, 0.12), skin, collection)
-        _capsule("Arm_Right_Forearm", (0.52, -0.02, 3.38), (0.52, -0.12, 3.02), (0.105, 0.10), skin, collection)
-        _ellipsoid("Hand_Right", (0.52, -0.14, 2.92), (0.12, 0.085, 0.15), skin, collection)
-        _ellipsoid("Sleeve_Right", (0.40, -0.005, 3.86), (0.17, 0.25, 0.20), top, collection)
-
-    _ellipsoid(
-        "Head",
-        (0.0, 0.0, 4.66),
-        (0.59 * head_scale, 0.47, 0.70 * head_scale),
-        skin,
-        collection,
-        segments=48,
-        rings=32,
-    )
-
-
-def _build_studio(collection: bpy.types.Collection, materials: dict[str, bpy.types.Material]) -> None:
+    floor_color: str = "#D5D9DF",
+) -> tuple[bpy.types.Object, Vector, float]:
     scene = bpy.context.scene
-    bpy.ops.mesh.primitive_plane_add(size=200.0, location=(0.0, 0.0, -0.01))
+    minimum, maximum = _world_bounds(body)
+    center = (minimum + maximum) * 0.5
+    height = max(maximum.z - minimum.z, 1.0)
+
+    floor_material = _material("Studio_Floor_Matte", floor_color, roughness=0.92)
+    bpy.ops.mesh.primitive_plane_add(
+        size=height * 8.0,
+        location=(center.x, center.y, minimum.z - height * 0.008),
+    )
     floor = bpy.context.object
     floor.name = "Studio_Floor"
-    floor.data.materials.append(materials["floor"])
+    floor.data.materials.append(floor_material)
     _move_to_collection(floor, collection)
 
-    bpy.ops.object.camera_add(location=(6.3, -11.5, 5.3))
+    bpy.ops.object.camera_add(
+        location=(center.x + height * 1.45, center.y - height * 2.8, center.z + height * 0.30)
+    )
     camera = bpy.context.object
-    camera.name = "Preview_Camera"
-    camera.data.lens = 52
-    _look_at(camera, (0.0, 0.0, 2.70))
+    camera.name = "Review_Camera"
+    camera.data.type = "ORTHO"
+    camera.data.ortho_scale = height * 1.48
+    _look_at(camera, center)
     _move_to_collection(camera, collection)
     scene.camera = camera
 
-    lights: list[tuple[str, tuple[float, float, float], float, float, tuple[float, float, float]]] = [
-        ("Key_Light", ( -4.5, -6.5, 8.0), 1050.0, 5.0, (0.0, 0.0, 3.0)),
-        ("Fill_Light", (5.0, -4.0, 5.0), 650.0, 4.0, (0.0, 0.0, 3.0)),
-        ("Rim_Light", (0.0, 3.5, 6.5), 1250.0, 3.0, (0.0, 0.0, 3.4)),
+    lights = [
+        ("Key_Light", (-1.5, -2.0, 1.8), 330.0, 1.7),
+        ("Fill_Light", (1.9, -1.4, 0.8), 190.0, 1.8),
+        ("Rim_Light", (0.0, 1.5, 1.5), 420.0, 1.4),
     ]
-    for name, location, power, size, target in lights:
+    for name, offset, energy_factor, size_factor in lights:
+        location = (
+            center.x + offset[0] * height,
+            center.y + offset[1] * height,
+            center.z + offset[2] * height,
+        )
         bpy.ops.object.light_add(type="AREA", location=location)
         light = bpy.context.object
         light.name = name
-        light.data.energy = power
+        light.data.energy = energy_factor * height * height
         light.data.shape = "DISK"
-        light.data.size = size
-        _look_at(light, target)
+        light.data.size = size_factor * height
+        _look_at(light, center)
         _move_to_collection(light, collection)
 
     if scene.world is None:
-        scene.world = bpy.data.worlds.new("Studio_World")
+        scene.world = bpy.data.worlds.new("Illumination_Studio_World")
     scene.world.use_nodes = True
     background = scene.world.node_tree.nodes.get("Background")
     if background is not None:
-        background.inputs["Color"].default_value = (0.48, 0.52, 0.60, 1.0)
-        background.inputs["Strength"].default_value = 0.35
+        background.inputs["Color"].default_value = (0.72, 0.76, 0.84, 1.0)
+        background.inputs["Strength"].default_value = 0.42
 
     scene.render.engine = "BLENDER_EEVEE_NEXT"
-    scene.render.resolution_x = 960
-    scene.render.resolution_y = 1280
+    scene.render.resolution_x = 900
+    scene.render.resolution_y = 1200
     scene.render.resolution_percentage = 100
     scene.render.image_settings.file_format = "PNG"
-    scene.render.film_transparent = False
-    scene.view_settings.view_transform = "AgX"
     scene.render.image_settings.color_mode = "RGBA"
+    scene.view_settings.view_transform = "AgX"
+    scene.camera.data.lens = 50.0
+    return camera, center, height
 
 
-def _make_materials(config: CharacterConfig) -> dict[str, bpy.types.Material]:
-    return {
-        "skin": _material("Skin_Warm_Neutral", config.face.skin_color, roughness=0.62),
-        "top": _material("Top_Navy_Blue", config.outfit.top_color, roughness=0.68),
-        "shorts": _material("Shorts_Light_Grey", config.outfit.shorts_color, roughness=0.78),
-        "socks": _material("Socks_Off_White", config.outfit.socks_color, roughness=0.85),
-        "slippers": _material("Slippers_Soft_White", config.outfit.slipper_color, roughness=0.82),
-        "sole": _material("Slipper_Sole", config.outfit.sole_color, roughness=0.9),
-        "hair": _material("Hair_Base", config.hair.color, roughness=0.48),
-        "hair_highlight": _material("Hair_Highlight", config.hair.highlight_color, roughness=0.44),
-        "eye_white": _material("Eye_White", "#FFF9F0", roughness=0.22),
-        "iris": _material("Iris", config.face.iris_color, roughness=0.28),
-        "pupil": _material("Pupil", "#171311", roughness=0.12),
-        "eye_glint": _material("Eye_Glint", "#FFFFFF", roughness=0.08),
-        "brow": _material("Eyebrow", config.hair.color, roughness=0.65),
-        "mouth": _material("Mouth_Line", "#8F4E4B", roughness=0.75),
-        "phone": _material("Phone_Glass_Black", "#11151D", roughness=0.19, metallic=0.25),
-        "phone_lens": _material("Phone_Lens", "#303B4C", roughness=0.14, metallic=0.45),
-        "floor": _material("Studio_Floor_Matte", "#D5D9DF", roughness=0.9),
+def _render_silhouettes(
+    body: bpy.types.Object,
+    camera: bpy.types.Object,
+    center: Vector,
+    height: float,
+    output_dir: Path,
+) -> list[str]:
+    scene = bpy.context.scene
+    original_engine = scene.render.engine
+    original_resolution = (scene.render.resolution_x, scene.render.resolution_y)
+    scene.render.engine = "BLENDER_WORKBENCH"
+    scene.render.resolution_x = 560
+    scene.render.resolution_y = 800
+    scene.render.resolution_percentage = 100
+
+    shading = scene.display.shading
+    original = {
+        "light": shading.light,
+        "color_type": shading.color_type,
+        "single_color": tuple(shading.single_color),
+        "background_type": shading.background_type,
+        "show_shadows": shading.show_shadows,
     }
+    shading.light = "FLAT"
+    shading.color_type = "SINGLE"
+    shading.single_color = (0.012, 0.012, 0.018)
+    shading.background_type = "WORLD"
+    shading.show_shadows = False
+
+    scene.world.color = (1.0, 1.0, 1.0)
+    original_hide = body.hide_render
+    body.hide_render = False
+
+    views = {
+        "front": (center.x, center.y - height * 3.0, center.z),
+        "side": (center.x + height * 3.0, center.y, center.z),
+        "three_quarter": (
+            center.x + height * 2.15,
+            center.y - height * 2.45,
+            center.z,
+        ),
+    }
+    rendered: list[str] = []
+    for name, location in views.items():
+        camera.location = location
+        _look_at(camera, center)
+        path = output_dir / f"silhouette_{name}.png"
+        scene.render.filepath = str(path)
+        bpy.ops.render.render(write_still=True)
+        rendered.append(str(path))
+
+    body.hide_render = original_hide
+    shading.light = original["light"]
+    shading.color_type = original["color_type"]
+    shading.single_color = original["single_color"]
+    shading.background_type = original["background_type"]
+    shading.show_shadows = original["show_shadows"]
+    scene.world.color = (0.05, 0.05, 0.05)
+    scene.render.engine = original_engine
+    scene.render.resolution_x, scene.render.resolution_y = original_resolution
+    scene.render.resolution_percentage = 100
+    return rendered
 
 
 def build_character(
     config: CharacterConfig,
+    base_mesh_path: str | Path,
     output_dir: str | Path,
     *,
+    body_object_name: str | None = None,
+    armature_object_name: str | None = None,
     render_preview: bool = True,
     save_blend: bool = True,
 ) -> dict[str, Any]:
-    """Build the configured character blockout and optional preview outputs."""
+    """Build Prototype 001 from a locally supplied rigged glTF/GLB base mesh."""
 
     output_path = Path(output_dir).expanduser().resolve()
     output_path.mkdir(parents=True, exist_ok=True)
@@ -468,46 +253,127 @@ def build_character(
     bpy.ops.object.select_all(action="SELECT")
     bpy.ops.object.delete(use_global=False)
 
-    character_collection = bpy.data.collections.new(f"{config.character_id}_Character")
-    bpy.context.scene.collection.children.link(character_collection)
-    studio_collection = bpy.data.collections.new("Studio_Setup")
-    bpy.context.scene.collection.children.link(studio_collection)
-
-    materials = _make_materials(config)
-    _build_body(config, character_collection, materials)
-    _build_face(
-        config,
-        character_collection,
-        materials["skin"],
-        materials["eye_white"],
-        materials["iris"],
-        materials["pupil"],
-        materials["eye_glint"],
-        materials["brow"],
-        materials["mouth"],
+    imported = import_humanoid_base(
+        base_mesh_path,
+        body_object_name=body_object_name,
+        armature_object_name=armature_object_name,
     )
-    _build_hair(
-        config,
-        character_collection,
-        materials["hair"],
-        materials["hair_highlight"],
-        config.proportions.head_to_body_ratio / 0.46,
-    )
-    _build_studio(studio_collection, materials)
+    if imported.armature is None:
+        raise RuntimeError(
+            "The selected base character has no armature. Use the rigged Quaternius "
+            "Universal Base Characters mesh for this pipeline."
+        )
 
-    scene = bpy.context.scene
-    scene.render.filepath = str(output_path / f"{config.character_id}_preview.png")
+    character_collection = _new_collection(f"{config.character_id}_Character")
+    for obj in imported.objects:
+        _move_to_collection(obj, character_collection)
+
+    generated_collection = _new_collection("Generated_Character_Assets")
+    studio_collection = _new_collection("Studio_Setup")
+
+    body = imported.body
+    _replace_body_material(body, config)
+
+    top = build_bodytopo_garment(
+        body,
+        name="Top_Navy_Cropped",
+        keep_region=keep_crop_top,
+        rgba=_linear_rgba(config.outfit.top_color),
+        roughness=0.72,
+        push_distance=0.007,
+        solidify_thickness=0.004,
+    )
+    shorts = build_bodytopo_garment(
+        body,
+        name="Shorts_Light_Grey",
+        keep_region=keep_shorts,
+        rgba=_linear_rgba(config.outfit.shorts_color),
+        roughness=0.84,
+        push_distance=0.008,
+        solidify_thickness=0.005,
+    )
+    socks = build_bodytopo_garment(
+        body,
+        name="Socks_Off_White",
+        keep_region=keep_socks,
+        rgba=_linear_rgba(config.outfit.socks_color),
+        roughness=0.88,
+        push_distance=0.006,
+        solidify_thickness=0.002,
+    )
+
+    slippers = build_slippers(
+        body,
+        armature=imported.armature,
+        slipper_color=config.outfit.slipper_color,
+        sole_color=config.outfit.sole_color,
+        collection=generated_collection,
+    )
+
+    imported_hair = [
+        obj
+        for obj in imported.objects
+        if obj.type == "MESH" and "hair" in obj.name.lower()
+    ]
+    if imported_hair:
+        hair_objects = imported_hair
+        hair_source = "imported_base_asset"
+    else:
+        hair_objects = build_long_hair_blockout(
+            body,
+            armature=imported.armature,
+            base_color=config.hair.color,
+            highlight_color=config.hair.highlight_color,
+            collection=generated_collection,
+            part=config.hair.part,
+        )
+        hair_source = "procedural_large_locks"
+
+    camera, center, height = _setup_studio(body, studio_collection)
+    preview_path = output_path / f"{config.character_id}_preview.png"
+    silhouettes: list[str] = []
+
+    if render_preview:
+        silhouettes = _render_silhouettes(
+            body,
+            camera,
+            center,
+            height,
+            output_path,
+        )
+        scene = bpy.context.scene
+        camera.location = (
+            center.x + height * 1.45,
+            center.y - height * 2.8,
+            center.z + height * 0.30,
+        )
+        _look_at(camera, center)
+        scene.render.engine = "BLENDER_EEVEE_NEXT"
+        scene.render.resolution_x = 900
+        scene.render.resolution_y = 1200
+        scene.render.image_settings.file_format = "PNG"
+        scene.render.filepath = str(preview_path)
+        bpy.ops.render.render(write_still=True)
+
     blend_path = output_path / f"{config.character_id}.blend"
-
     if save_blend:
         bpy.ops.wm.save_as_mainfile(filepath=str(blend_path))
-    if render_preview:
-        bpy.ops.render.render(write_still=True)
 
     return {
         "character_id": config.character_id,
+        "base_mesh_path": str(Path(base_mesh_path).expanduser().resolve()),
+        "body_object": body.name,
+        "body_vertices": len(body.data.vertices),
+        "armature": imported.armature.name,
+        "armature_bones": len(imported.armature.data.bones),
+        "top": {key: value for key, value in top.items() if key != "object"},
+        "shorts": {key: value for key, value in shorts.items() if key != "object"},
+        "socks": {key: value for key, value in socks.items() if key != "object"},
+        "slipper_object_count": len(slippers),
+        "hair_object_count": len(hair_objects),
+        "hair_source": hair_source,
         "blend_path": str(blend_path) if save_blend else None,
-        "preview_path": scene.render.filepath if render_preview else None,
-        "object_count": len(character_collection.objects),
-        "rig_status": "not_implemented_in_p1",
+        "preview_path": str(preview_path) if render_preview else None,
+        "silhouette_renders": silhouettes,
+        "rig_status": "inherited_from_base_mesh; deformation_not_yet_validated",
     }

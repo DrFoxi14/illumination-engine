@@ -1,4 +1,4 @@
-"""Tests for character configuration and Blender-independent project contracts."""
+"""Tests for configuration, pure garment rules, and Blender-independent contracts."""
 
 from __future__ import annotations
 
@@ -9,12 +9,19 @@ from pathlib import Path
 import pytest
 
 from engine.core.config import CharacterConfig, ConfigError, load_character_config
+from engine.core.garment_rules import keep_crop_top, keep_shorts, keep_socks
 from engine.core.paths import find_project_root
 
 ROOT = Path(__file__).resolve().parents[1]
 PROTOTYPE_CONFIG = ROOT / "characters" / "prototype_001" / "character.json"
-BUILDER_SCRIPT = ROOT / "engine" / "blender" / "character_builder.py"
-CLI_SCRIPT = ROOT / "scripts" / "build_character.py"
+BLENDER_MODULES = (
+    ROOT / "engine" / "blender" / "base_mesh.py",
+    ROOT / "engine" / "blender" / "body_topology.py",
+    ROOT / "engine" / "blender" / "character_builder.py",
+    ROOT / "engine" / "blender" / "grooming.py",
+    ROOT / "engine" / "blender" / "footwear.py",
+    ROOT / "scripts" / "build_character.py",
+)
 
 
 def _prototype_payload() -> dict:
@@ -31,8 +38,8 @@ def test_loads_prototype_character_config() -> None:
     assert config.proportions.eye_scale == pytest.approx(1.22)
     assert config.hair.style == "long_straight"
     assert config.hair.part == "left"
-    assert config.pose.style == "mirror_selfie"
-    assert config.pose.phone_visible is True
+    assert config.pose.style == "neutral_standing"
+    assert config.pose.phone_visible is False
 
 
 def test_rejects_unsupported_schema_version() -> None:
@@ -103,14 +110,25 @@ def test_project_root_can_be_discovered_from_nested_file() -> None:
     assert find_project_root(PROTOTYPE_CONFIG) == ROOT
 
 
-def test_blender_builder_is_valid_python_without_importing_blender() -> None:
-    source = BUILDER_SCRIPT.read_text(encoding="utf-8")
-    ast.parse(source, filename=str(BUILDER_SCRIPT))
+@pytest.mark.parametrize(
+    ("region", "point", "expected"),
+    [
+        (keep_crop_top, (0.55, 0.0, 0.66), True),
+        (keep_crop_top, (0.9, 0.0, 0.66), False),
+        (keep_crop_top, (0.0, 0.0, 0.30), False),
+        (keep_shorts, (0.82, 0.0, 0.45), True),
+        (keep_shorts, (0.0, 0.0, 0.70), False),
+        (keep_socks, (0.2, 0.0, 0.08), True),
+        (keep_socks, (0.2, 0.0, 0.48), False),
+    ],
+)
+def test_normalized_garment_regions(region, point, expected) -> None:
+    assert region(*point) is expected
 
 
-def test_blender_cli_entrypoint_is_valid_python() -> None:
-    source = CLI_SCRIPT.read_text(encoding="utf-8")
-    ast.parse(source, filename=str(CLI_SCRIPT))
+@pytest.mark.parametrize("path", BLENDER_MODULES)
+def test_blender_runtime_modules_are_valid_python(path: Path) -> None:
+    ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
 
 
 def test_pure_python_core_does_not_import_bpy() -> None:
