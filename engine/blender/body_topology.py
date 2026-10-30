@@ -12,7 +12,6 @@ import bmesh
 import bpy
 from mathutils import Vector
 
-
 RegionPredicate = Callable[[float, float, float], bool]
 
 
