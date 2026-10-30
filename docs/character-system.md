@@ -25,7 +25,7 @@ The initial generator consists of:
 - Swept limbs, hands, fingers, and feet with tapered cross-sections.
 - A unified skin surface created by joining and voxel-remeshing the anatomical parts. This removes internal intersections and produces one closed anatomical shell for later sculpting and retopology.
 - Separate facial forms for eye sockets, eyeballs, irises, pupils, eye catchlights, eyelid arcs, brows, nose, lips, mouth opening, teeth, and ears.
-- A scalp cap plus tapered volumetric hair clumps, including a swept fringe, side locks, and back locks.
+- A scalp cap plus tapered volumetric hair clumps: shorter face-framing locks, long side panels positioned behind the shoulders, and broad back clumps. The intent is to keep the outfit readable from the front while preserving long hair in side and rear views.
 - Lofted clothing volumes for the navy top and grey shorts, swept sleeves and socks, and soft footwear forms.
 - A studio camera, area lights, a color preview, and black-on-light silhouette renders from three angles.
 - Structural validation of required parts, finite mesh coordinates, face areas, loose geometry, and manifold edges.
@@ -36,6 +36,7 @@ P1 is a procedural blockout and is not accepted as a finished character. In part
 - The unified skin mesh is suitable for further sculpting but is not final animation retopology.
 - The face does not yet have production-quality edge flow around eyelids and mouth.
 - The eyes and mouth are separate meshes, not a finished facial deformation system.
+- The hair is a static clump-based sculptural blockout; the new placement is a silhouette correction, not strand-level groom simulation.
 - Hair clumps are static mesh forms, not individual simulated strands.
 - Clothing is a shape blockout; folds, seams, fabric tension, and cloth simulation are not implemented.
 - There is no facial rig, body armature, skin weighting, corrective shapes, or animation yet.
