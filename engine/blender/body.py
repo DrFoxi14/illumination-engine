@@ -66,6 +66,21 @@ def build_body(
             subdivision=2,
         )
         objects.append(leg)
+        foot = create_sweep(
+            f"Body_Foot_{label}",
+            [
+                (side * 0.205, -0.005, 0.36, 0.105, 0.105),
+                (side * 0.205, -0.125, 0.255, 0.115, 0.145),
+                (side * 0.205, -0.285, 0.205, 0.108, 0.185),
+                (side * 0.205, -0.365, 0.190, 0.082, 0.135),
+            ],
+            skin,
+            collection,
+            radial_segments=28,
+            steps_per_span=5,
+            subdivision=2,
+        )
+        objects.append(foot)
         arm = create_sweep(
             f"Body_Arm_{label}",
             [

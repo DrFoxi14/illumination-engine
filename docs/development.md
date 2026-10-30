@@ -3,7 +3,7 @@
 ## Requirements
 
 - Python 3.10 or newer for the pure-Python package and CI.
-- Blender 4.2 or newer for the current mesh generation and preview scripts.
+- Blender 4.5 LTS recommended. The automated headless scene build is pinned to Blender 4.5.15.
 - Git.
 - Node.js will be required when the Three.js viewer is introduced.
 
@@ -33,36 +33,52 @@ python -m compileall -q engine tests scripts
 Run the generator inside Blender:
 
 ```bash
-blender --background --factory-startup --python scripts/build_character.py
-```
-
-Optional arguments:
-
-```bash
-blender --background --factory-startup --python scripts/build_character.py -- \
-  --config characters/prototype_001/character.json \
-  --output-dir outputs/prototype_001 \
-  --skip-render
+blender --background --factory-startup --python-exit-code 1 \
+  --python scripts/build_character.py
 ```
 
 The default build reads `characters/prototype_001/character.json` and creates the character from custom parametric meshes. No external base mesh is downloaded or imported.
 
+CPU-only structural validation and silhouette renders:
+
+```bash
+blender --background --factory-startup --python-exit-code 1 \
+  --python scripts/build_character.py -- \
+  --output-dir outputs/validation \
+  --silhouette-only
+```
+
+The silhouette-only mode uses Blender Workbench and deliberately skips the EEVEE color render. It is designed for headless CI and machines without a configured render GPU.
+
+To build the scene and run geometry validation without rendering:
+
+```bash
+blender --background --factory-startup --python-exit-code 1 \
+  --python scripts/build_character.py -- \
+  --output-dir outputs/validation \
+  --skip-render
+```
+
 Expected outputs:
-- `outputs/prototype_001/prototype_001.blend`
-- `outputs/prototype_001/prototype_001_preview.png`
-- `outputs/prototype_001/silhouette_front.png`
-- `outputs/prototype_001/silhouette_side.png`
-- `outputs/prototype_001/silhouette_three_quarter.png`
+- `outputs/validation/prototype_001.blend`
+- `outputs/validation/validation_report.json`
+- `outputs/validation/silhouette_front.png`
+- `outputs/validation/silhouette_side.png`
+- `outputs/validation/silhouette_three_quarter.png`
+
+The full local preview additionally writes `prototype_001_preview.png`.
 
 ## Generation modules
 
-- `engine/blender/geometry.py`: profile lofts, tapered swept meshes, ellipsoid meshes, and material construction.
+- `engine/blender/geometry.py`: profile lofts, parallel-transport sweeps, watertight ellipsoid meshes, and material construction.
 - `engine/blender/head.py`: head and jaw profile.
-- `engine/blender/body.py`: torso, neck, limbs, hands, and fingers.
+- `engine/blender/body.py`: torso, neck, limbs, hands, and feet.
+- `engine/blender/skin.py`: applies anatomical subdivision, joins the anatomical components, and voxel-remeshes one continuous skin mesh.
 - `engine/blender/face.py`: eyes, lids, brows, nose, mouth, and ears.
 - `engine/blender/hair.py`: scalp cap and volumetric hair clumps.
 - `engine/blender/outfit.py`: clothing and footwear blockout.
-- `engine/blender/character_builder.py`: scene assembly, preview camera, lighting, and render passes.
+- `engine/blender/validation.py`: required object, coordinate, face-area, loose-geometry, and manifold checks.
+- `engine/blender/character_builder.py`: scene assembly, validation report, preview camera, lighting, and render passes.
 
 ## Runtime separation
 
@@ -72,7 +88,9 @@ The web viewer will be downstream from future Blender exports. Do not implement 
 
 ## CI policy
 
-GitHub Actions runs pure-Python linting, unit tests, and Python compilation. It does not install Blender or run 3D renders. Blender execution and visual inspection must run locally or on a dedicated Blender runner.
+The regular Python workflow runs linting, unit tests, and source compilation. A separate Blender workflow downloads the official Blender 4.5.15 LTS Linux archive, verifies its published SHA-256 checksum, builds the character headlessly, runs mesh integrity checks, and produces three Workbench silhouette renders. The Blender project, validation report, and images are uploaded as a short-lived workflow artifact.
+
+That headless workflow validates actual scene construction and CPU rendering. It does not certify artistic quality or replace a final local EEVEE/Cycles look-development review.
 
 ## Generated files
 
