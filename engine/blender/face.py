@@ -1,4 +1,4 @@
-"""Create expressive face features as separate, animator-friendly mesh parts."""
+"""Build an expressive stylized face with inset eyes and sculpted-looking features."""
 
 from __future__ import annotations
 
@@ -17,148 +17,184 @@ def build_face(
     lip: bpy.types.Material,
     eye_scale: float = 1.0,
 ) -> list[bpy.types.Object]:
-    """Build paired eyes with lids, brows, nose, ears, and a restrained smile."""
+    """Build eyes, eyelids, brows, nose, ears, and a small readable smile.
+
+    The old full ellipsoid socket created a visible concentric ring around each eye.
+    The revised design seats the eyeballs closer to the head and uses upper/lower
+    lid arcs to define the opening instead of a separate raised socket sphere.
+    """
 
     objects: list[bpy.types.Object] = []
+    scale = eye_scale * 0.90
 
     for side, label in ((-1.0, "L"), (1.0, "R")):
-        socket = create_ellipsoid(
-            f"Face_EyeSocket_{label}",
-            (side * 0.205, -0.365, 4.765),
-            (0.184 * eye_scale, 0.096, 0.205 * eye_scale),
-            skin,
-            collection,
-            segments=40,
-            rings=24,
-            subdivision=1,
-        )
+        eye_x = side * 0.205
+        eye_y = -0.401
+        eye_z = 4.765
+
         eye = create_ellipsoid(
             f"Face_Eyeball_{label}",
-            (side * 0.205, -0.427, 4.765),
-            (0.145 * eye_scale, 0.103, 0.164 * eye_scale),
+            (eye_x, eye_y, eye_z),
+            (0.135 * scale, 0.074, 0.119 * scale),
             eye_white,
             collection,
-            segments=40,
-            rings=24,
-            subdivision=1,
+            segments=48,
+            rings=28,
+            subdivision=2,
         )
         iris_obj = create_ellipsoid(
             f"Face_Iris_{label}",
-            (side * 0.190, -0.520, 4.758),
-            (0.067 * eye_scale, 0.025, 0.080 * eye_scale),
+            (eye_x - side * 0.006, -0.466, eye_z - 0.006),
+            (0.061 * scale, 0.020, 0.071 * scale),
             iris,
             collection,
-            segments=32,
-            rings=20,
+            segments=36,
+            rings=24,
             subdivision=1,
         )
         pupil = create_ellipsoid(
             f"Face_Pupil_{label}",
-            (side * 0.190, -0.541, 4.758),
-            (0.032 * eye_scale, 0.014, 0.049 * eye_scale),
+            (eye_x - side * 0.006, -0.481, eye_z - 0.006),
+            (0.032 * scale, 0.011, 0.044 * scale),
             dark,
             collection,
-            segments=24,
-            rings=16,
+            segments=28,
+            rings=20,
             subdivision=1,
         )
-        sparkle = create_ellipsoid(
+        main_glint = create_ellipsoid(
             f"Face_EyeCatchlight_{label}",
-            (side * 0.165, -0.556, 4.792),
-            (0.020 * eye_scale, 0.010, 0.025 * eye_scale),
+            (eye_x - side * 0.025, -0.493, eye_z + 0.027),
+            (0.018 * scale, 0.007, 0.022 * scale),
             eye_white,
             collection,
-            segments=16,
-            rings=12,
+            segments=20,
+            rings=14,
+            subdivision=1,
+        )
+        secondary_glint = create_ellipsoid(
+            f"Face_EyeSpark_{label}",
+            (eye_x + side * 0.020, -0.491, eye_z - 0.028),
+            (0.008 * scale, 0.004, 0.010 * scale),
+            eye_white,
+            collection,
+            segments=12,
+            rings=10,
             subdivision=0,
         )
-        objects.extend((socket, eye, iris_obj, pupil, sparkle))
+        objects.extend((eye, iris_obj, pupil, main_glint, secondary_glint))
 
         upper_lid = create_sweep(
             f"Face_UpperEyelid_{label}",
             [
-                (side * 0.350, -0.468, 4.755, 0.022, 0.022),
-                (side * 0.305, -0.505, 4.865, 0.026, 0.024),
-                (side * 0.205, -0.527, 4.900, 0.028, 0.025),
-                (side * 0.105, -0.505, 4.860, 0.026, 0.024),
-                (side * 0.060, -0.468, 4.770, 0.020, 0.020),
+                (side * 0.350, -0.432, 4.754, 0.014, 0.012),
+                (side * 0.300, -0.461, 4.836, 0.018, 0.015),
+                (side * 0.205, -0.477, 4.866, 0.019, 0.016),
+                (side * 0.110, -0.461, 4.835, 0.017, 0.014),
+                (side * 0.064, -0.432, 4.770, 0.012, 0.011),
             ],
             skin,
             collection,
             radial_segments=12,
-            steps_per_span=5,
+            steps_per_span=6,
             subdivision=1,
         )
         lower_lid = create_sweep(
             f"Face_LowerEyelid_{label}",
             [
-                (side * 0.350, -0.466, 4.755, 0.018, 0.018),
-                (side * 0.300, -0.495, 4.675, 0.020, 0.020),
-                (side * 0.205, -0.510, 4.650, 0.022, 0.020),
-                (side * 0.110, -0.495, 4.680, 0.020, 0.020),
-                (side * 0.060, -0.466, 4.770, 0.018, 0.018),
+                (side * 0.345, -0.428, 4.755, 0.011, 0.010),
+                (side * 0.295, -0.450, 4.700, 0.014, 0.012),
+                (side * 0.205, -0.466, 4.684, 0.015, 0.013),
+                (side * 0.115, -0.450, 4.701, 0.014, 0.012),
+                (side * 0.067, -0.428, 4.770, 0.011, 0.010),
             ],
             skin,
             collection,
             radial_segments=12,
+            steps_per_span=6,
+            subdivision=1,
+        )
+        lid_crease = create_sweep(
+            f"Face_EyelidCrease_{label}",
+            [
+                (side * 0.105, -0.415, 4.900, 0.007, 0.007),
+                (side * 0.205, -0.435, 4.918, 0.009, 0.008),
+                (side * 0.300, -0.414, 4.885, 0.007, 0.007),
+            ],
+            skin,
+            collection,
+            radial_segments=10,
             steps_per_span=5,
             subdivision=1,
         )
         brow = create_sweep(
             f"Face_Brow_{label}",
             [
-                (side * 0.075, -0.437, 4.985, 0.026, 0.028),
-                (side * 0.190, -0.465, 5.025, 0.039, 0.035),
-                (side * 0.305, -0.425, 5.010, 0.032, 0.030),
-                (side * 0.375, -0.390, 4.965, 0.018, 0.018),
+                (side * 0.078, -0.414, 4.982, 0.019, 0.018),
+                (side * 0.185, -0.444, 5.018, 0.027, 0.022),
+                (side * 0.292, -0.417, 5.005, 0.025, 0.021),
+                (side * 0.370, -0.385, 4.969, 0.012, 0.012),
             ],
             dark,
             collection,
             radial_segments=14,
-            steps_per_span=5,
-            subdivision=1,
+            steps_per_span=6,
+            subdivision=2,
         )
-        objects.extend((upper_lid, lower_lid, brow))
+        objects.extend((upper_lid, lower_lid, lid_crease, brow))
 
         ear = create_ellipsoid(
             f"Face_Ear_{label}",
-            (side * 0.505, 0.005, 4.570),
-            (0.105, 0.105, 0.175),
+            (side * 0.515, 0.010, 4.575),
+            (0.094, 0.094, 0.154),
             skin,
             collection,
-            segments=28,
-            rings=20,
+            segments=32,
+            rings=22,
+            subdivision=2,
+        )
+        inner_ear = create_sweep(
+            f"Face_InnerEar_{label}",
+            [
+                (side * 0.505, -0.078, 4.625, 0.010, 0.010),
+                (side * 0.540, -0.083, 4.575, 0.013, 0.012),
+                (side * 0.505, -0.078, 4.525, 0.008, 0.008),
+            ],
+            skin,
+            collection,
+            radial_segments=10,
+            steps_per_span=5,
             subdivision=1,
         )
-        objects.append(ear)
+        objects.extend((ear, inner_ear))
 
     nose_bridge = create_sweep(
         "Face_NoseBridge",
         [
-            (0.0, -0.387, 4.690, 0.055, 0.060),
-            (0.0, -0.442, 4.555, 0.068, 0.071),
-            (0.0, -0.482, 4.440, 0.088, 0.090),
+            (0.0, -0.385, 4.680, 0.040, 0.043),
+            (0.0, -0.428, 4.555, 0.050, 0.052),
+            (0.0, -0.469, 4.448, 0.068, 0.060),
         ],
         skin,
         collection,
         radial_segments=20,
-        steps_per_span=6,
+        steps_per_span=7,
         subdivision=2,
     )
     nose_tip = create_ellipsoid(
         "Face_NoseTip",
-        (0.0, -0.500, 4.425),
-        (0.105, 0.090, 0.078),
+        (0.0, -0.485, 4.425),
+        (0.086, 0.073, 0.060),
         skin,
         collection,
-        segments=32,
-        rings=20,
-        subdivision=1,
+        segments=36,
+        rings=24,
+        subdivision=2,
     )
     nose_wing_left = create_ellipsoid(
         "Face_NoseWing_L",
-        (-0.075, -0.475, 4.410),
-        (0.055, 0.050, 0.045),
+        (-0.064, -0.468, 4.414),
+        (0.041, 0.038, 0.032),
         skin,
         collection,
         segments=24,
@@ -167,62 +203,63 @@ def build_face(
     )
     nose_wing_right = create_ellipsoid(
         "Face_NoseWing_R",
-        (0.075, -0.475, 4.410),
-        (0.055, 0.050, 0.045),
+        (0.064, -0.468, 4.414),
+        (0.041, 0.038, 0.032),
         skin,
         collection,
         segments=24,
         rings=16,
         subdivision=1,
     )
+
     mouth = create_ellipsoid(
         "Face_MouthOpening",
-        (0.0, -0.414, 4.195),
-        (0.155, 0.030, 0.061),
+        (0.0, -0.387, 4.199),
+        (0.126, 0.021, 0.043),
         dark,
         collection,
         segments=36,
-        rings=20,
+        rings=22,
         subdivision=1,
     )
     teeth = create_ellipsoid(
         "Face_Teeth",
-        (0.0, -0.448, 4.211),
-        (0.110, 0.016, 0.025),
+        (0.0, -0.411, 4.214),
+        (0.085, 0.010, 0.016),
         eye_white,
         collection,
         segments=32,
-        rings=16,
+        rings=18,
         subdivision=1,
     )
     upper_lip = create_sweep(
         "Face_UpperLip",
         [
-            (-0.160, -0.432, 4.205, 0.014, 0.014),
-            (-0.080, -0.448, 4.229, 0.018, 0.014),
-            (0.0, -0.454, 4.214, 0.017, 0.014),
-            (0.080, -0.448, 4.229, 0.018, 0.014),
-            (0.160, -0.432, 4.205, 0.014, 0.014),
+            (-0.132, -0.392, 4.205, 0.010, 0.009),
+            (-0.068, -0.410, 4.220, 0.014, 0.011),
+            (0.0, -0.416, 4.211, 0.013, 0.010),
+            (0.068, -0.410, 4.220, 0.014, 0.011),
+            (0.132, -0.392, 4.205, 0.010, 0.009),
         ],
         lip,
         collection,
         radial_segments=12,
-        steps_per_span=4,
+        steps_per_span=5,
         subdivision=1,
     )
     lower_lip = create_sweep(
         "Face_LowerLip",
         [
-            (-0.145, -0.435, 4.191, 0.012, 0.012),
-            (-0.075, -0.452, 4.165, 0.021, 0.016),
-            (0.0, -0.455, 4.160, 0.023, 0.017),
-            (0.075, -0.452, 4.165, 0.021, 0.016),
-            (0.145, -0.435, 4.191, 0.012, 0.012),
+            (-0.120, -0.394, 4.190, 0.009, 0.009),
+            (-0.062, -0.414, 4.174, 0.015, 0.012),
+            (0.0, -0.417, 4.170, 0.016, 0.012),
+            (0.062, -0.414, 4.174, 0.015, 0.012),
+            (0.120, -0.394, 4.190, 0.009, 0.009),
         ],
         skin,
         collection,
         radial_segments=12,
-        steps_per_span=4,
+        steps_per_span=5,
         subdivision=1,
     )
     objects.extend(
