@@ -252,7 +252,7 @@ def _create_material_palette(config: CharacterConfig) -> dict[str, bpy.types.Mat
         ),
         "hair_highlight": create_material(
             "Hair_Golden_Highlight",
-            "#D3AC77",
+            config.hair.highlight_color,
             roughness=0.52,
             coat=0.08,
         ),
