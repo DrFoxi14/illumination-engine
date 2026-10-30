@@ -88,11 +88,28 @@ jobs:
             --output-dir outputs/ci \
             --silhouette-only
 
+      - name: Render shaded color preview with Cycles CPU
+        if: success()
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          "${BLENDER_BIN}" \
+            --background \
+            --factory-startup \
+            --python-exit-code 1 \
+            --python scripts/build_character.py \
+            -- \
+            --output-dir outputs/color \
+            --color-only \
+            --preview-engine cycles \
+            --preview-samples 8
+
       - name: Upload Blender scene and silhouette renders
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: prototype-001-blender-validation
-          path: outputs/ci/
+          path: outputs/
           if-no-files-found: warn
           retention-days: 7

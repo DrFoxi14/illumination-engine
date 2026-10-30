@@ -25,22 +25,39 @@ REQUIRED_OBJECTS = (
 )
 
 
-def _component_count(bm: bmesh.types.BMesh) -> int:
+def _component_bounds(bm: bmesh.types.BMesh) -> list[dict[str, Any]]:
+    """Describe each connected face component with an object-space bounding box."""
+
     visited: set[bmesh.types.BMFace] = set()
-    components = 0
+    components: list[dict[str, Any]] = []
 
     for start in bm.faces:
         if start in visited:
             continue
-        components += 1
         stack = [start]
+        component_faces: list[bmesh.types.BMFace] = []
+        component_vertices: set[bmesh.types.BMVert] = set()
         while stack:
             face = stack.pop()
             if face in visited:
                 continue
             visited.add(face)
+            component_faces.append(face)
+            component_vertices.update(face.verts)
             for edge in face.edges:
                 stack.extend(linked for linked in edge.link_faces if linked not in visited)
+
+        coordinates = [vertex.co for vertex in component_vertices]
+        minimum = tuple(min(point[axis] for point in coordinates) for axis in range(3))
+        maximum = tuple(max(point[axis] for point in coordinates) for axis in range(3))
+        components.append(
+            {
+                "faces": len(component_faces),
+                "vertices": len(component_vertices),
+                "bounds_min": tuple(round(value, 4) for value in minimum),
+                "bounds_max": tuple(round(value, 4) for value in maximum),
+            }
+        )
 
     return components
 
@@ -70,7 +87,8 @@ def _mesh_report(obj: bpy.types.Object) -> dict[str, Any]:
         non_manifold_edges = sum(not edge.is_manifold for edge in bm.edges)
         loose_vertices = sum(not vertex.link_edges for vertex in bm.verts)
         loose_edges = sum(not edge.link_faces for edge in bm.edges)
-        connected_components = _component_count(bm)
+        components = _component_bounds(bm)
+        connected_components = len(components)
     finally:
         bm.free()
 
@@ -91,6 +109,7 @@ def _mesh_report(obj: bpy.types.Object) -> dict[str, Any]:
         "loose_vertices": loose_vertices,
         "loose_edges": loose_edges,
         "connected_components": connected_components,
+        "component_details": components,
         "materials": len(mesh.materials),
         "modifiers": [modifier.type for modifier in obj.modifiers],
     }
@@ -127,7 +146,8 @@ def validate_character_scene() -> dict[str, Any]:
     if skin_report["connected_components"] != 1:
         raise RuntimeError(
             "Unified skin surface must be one connected component, found "
-            f"{skin_report['connected_components']}"
+            f"{skin_report['connected_components']}; component bounds: "
+            f"{skin_report.get('component_details', [])}"
         )
 
     return {

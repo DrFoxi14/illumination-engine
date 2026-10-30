@@ -14,7 +14,7 @@ from typing import Any
 
 from engine.blender.body import build_body
 from engine.blender.face import build_face
-from engine.blender.geometry import create_material
+from engine.blender.geometry import create_ellipsoid, create_material
 from engine.blender.hair import build_hair
 from engine.blender.head import build_head
 from engine.blender.outfit import build_outfit
@@ -35,7 +35,7 @@ def _look_at(obj: bpy.types.Object, target: Vector) -> None:
 
 
 def _set_eevee_engine(scene: bpy.types.Scene) -> str:
-    """Select the EEVEE identifier supported by the running Blender version."""
+    """Choose the EEVEE engine identifier exposed by the running Blender version."""
 
     from engine.blender.compat import choose_eevee_engine
 
@@ -44,6 +44,45 @@ def _set_eevee_engine(scene: bpy.types.Scene) -> str:
     selected = choose_eevee_engine(available)
     scene.render.engine = selected
     return selected
+
+
+def _build_phone(
+    collection: bpy.types.Collection,
+    *,
+    body_material: bpy.types.Material,
+    lens_material: bpy.types.Material,
+) -> list[bpy.types.Object]:
+    """Create a small beveled phone prop beside the raised selfie hand."""
+
+    bpy.ops.mesh.primitive_cube_add(size=1.0, location=(0.355, -0.535, 4.625))
+    phone = bpy.context.object
+    phone.name = "Phone_Back"
+    phone.dimensions = (0.180, 0.040, 0.305)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    phone.rotation_euler[1] = -0.055
+    bevel = phone.modifiers.new(name="Phone_Edge_Radius", type="BEVEL")
+    bevel.width = 0.014
+    bevel.segments = 5
+    phone.modifiers.new(name="Phone_Weighted_Normals", type="WEIGHTED_NORMAL")
+    phone.data.materials.append(body_material)
+    for current in tuple(phone.users_collection):
+        current.objects.unlink(phone)
+    collection.objects.link(phone)
+
+    lenses = []
+    for index, offset in enumerate((-0.035, 0.035), start=1):
+        lens = create_ellipsoid(
+            f"Phone_Camera_Lens_{index}",
+            (0.355 + offset, -0.560, 4.735),
+            (0.018, 0.007, 0.018),
+            lens_material,
+            collection,
+            segments=20,
+            rings=14,
+            subdivision=1,
+        )
+        lenses.append(lens)
+    return [phone, *lenses]
 
 
 def _create_stage(
@@ -222,10 +261,20 @@ def _create_material_palette(config: CharacterConfig) -> dict[str, bpy.types.Mat
             config.outfit.top_color,
             roughness=0.72,
         ),
+        "top_detail": create_material(
+            "Fabric_Navy_Stitching",
+            "#344C7A",
+            roughness=0.78,
+        ),
         "shorts": create_material(
             "Fabric_Light_Grey",
             config.outfit.shorts_color,
             roughness=0.83,
+        ),
+        "shorts_detail": create_material(
+            "Fabric_Grey_Stitching",
+            "#92948E",
+            roughness=0.88,
         ),
         "socks": create_material(
             "Fabric_Off_White",
@@ -251,9 +300,18 @@ def build_character(
     *,
     render_preview: bool = True,
     render_color_preview: bool = True,
+    render_engine: str = "EEVEE",
+    preview_samples: int = 16,
     save_blend: bool = True,
 ) -> dict[str, Any]:
     """Generate Prototype 001 from custom parametric geometry."""
+
+    if render_engine in {"BLENDER_EEVEE_NEXT", "BLENDER_EEVEE"}:
+        render_engine = "EEVEE"
+    if render_engine not in {"EEVEE", "CYCLES"}:
+        raise ValueError(f"Unsupported preview render engine: {render_engine}")
+    if not 1 <= preview_samples <= 128:
+        raise ValueError("preview_samples must be between 1 and 128")
 
     output_path = Path(output_dir).expanduser().resolve()
     output_path.mkdir(parents=True, exist_ok=True)
@@ -268,7 +326,11 @@ def build_character(
     studio_collection = _new_collection("Studio_Setup")
     palette = _create_material_palette(config)
 
-    body_objects = build_body(character_collection, palette["skin"])
+    body_objects = build_body(
+        character_collection,
+        palette["skin"],
+        pose=config.pose.style,
+    )
     head_scale = 0.98 + (config.proportions.head_to_body_ratio - 0.46) * 0.35
     head = build_head(character_collection, palette["skin"], scale=head_scale)
     skin_object = unify_skin_surface(
@@ -295,11 +357,33 @@ def build_character(
     outfit_objects = build_outfit(
         outfit_collection,
         top=palette["top"],
+        top_detail=palette["top_detail"],
         shorts=palette["shorts"],
+        shorts_detail=palette["shorts_detail"],
         socks=palette["socks"],
         slippers=palette["slippers"],
         sole=palette["sole"],
+        pose=config.pose.style,
     )
+
+    props_collection = _new_collection("Handheld_Props")
+    phone_objects: list[bpy.types.Object] = []
+    if config.pose.phone_visible and config.pose.style == "mirror_selfie":
+        phone_objects = _build_phone(
+            props_collection,
+            body_material=create_material(
+                "Phone_Graphite_Glass",
+                "#171B24",
+                roughness=0.20,
+                metallic=0.18,
+            ),
+            lens_material=create_material(
+                "Phone_Camera_Glass",
+                "#46546C",
+                roughness=0.14,
+                metallic=0.28,
+            ),
+        )
 
     target = Vector((0.0, 0.0, 2.78))
     camera = _create_stage(studio_collection, target=target)
@@ -318,14 +402,23 @@ def build_character(
     if render_preview:
         silhouette_paths = _render_silhouette_views(camera, target, output_path)
 
+    actual_preview_engine: str | None = None
     if render_color_preview:
         camera.location = (5.6, -10.8, 4.1)
         _look_at(camera, target)
         scene = bpy.context.scene
-        _set_eevee_engine(scene)
-        scene.render.resolution_x = 1100
-        scene.render.resolution_y = 1400
+        actual_preview_engine = (
+            "CYCLES" if render_engine == "CYCLES" else _set_eevee_engine(scene)
+        )
+        if render_engine == "CYCLES":
+            scene.render.engine = "CYCLES"
+        scene.render.resolution_x = 960 if render_engine == "CYCLES" else 1100
+        scene.render.resolution_y = 1200 if render_engine == "CYCLES" else 1400
         scene.render.resolution_percentage = 100
+        if render_engine == "CYCLES":
+            scene.cycles.device = "CPU"
+            scene.cycles.samples = preview_samples
+            scene.cycles.use_denoising = True
         scene.render.filepath = str(preview_path)
         bpy.ops.render.render(write_still=True)
 
@@ -344,11 +437,15 @@ def build_character(
         "face_object_count": len(face_objects),
         "hair_object_count": len(hair_objects),
         "outfit_object_count": len(outfit_objects),
+        "phone_object_count": len(phone_objects),
+        "pose": config.pose.style,
         "mesh_object_count": len(mesh_objects),
         "facial_rig_status": "planned_not_implemented",
         "body_rig_status": "planned_not_implemented",
         "blend_path": str(blend_path) if save_blend else None,
         "preview_path": str(preview_path) if render_color_preview else None,
+        "preview_render_engine": actual_preview_engine,
+        "preview_samples": preview_samples if render_color_preview else None,
         "silhouette_renders": silhouette_paths,
         "validation_report_path": str(validation_path),
         "validation": validation_report,

@@ -35,7 +35,24 @@ def _arguments() -> argparse.Namespace:
     render_group.add_argument(
         "--silhouette-only",
         action="store_true",
-        help="Render front/side/three-quarter Workbench silhouettes without an EEVEE color render.",
+        help="Render front/side/three-quarter Workbench silhouettes without a color render.",
+    )
+    render_group.add_argument(
+        "--color-only",
+        action="store_true",
+        help="Render the shaded color preview without silhouette images.",
+    )
+    parser.add_argument(
+        "--preview-engine",
+        choices=("eevee", "cycles"),
+        default="eevee",
+        help="Renderer for the shaded color preview.",
+    )
+    parser.add_argument(
+        "--preview-samples",
+        type=int,
+        default=16,
+        help="Cycles CPU preview samples (1-128); ignored by EEVEE.",
     )
     parser.add_argument(
         "--skip-blend-save",
@@ -55,8 +72,12 @@ def main() -> int:
     result = build_character(
         config,
         args.output_dir,
-        render_preview=not args.skip_render,
+        render_preview=not args.skip_render and not args.color_only,
         render_color_preview=not args.skip_render and not args.silhouette_only,
+        render_engine=(
+            "CYCLES" if args.preview_engine == "cycles" else "EEVEE"
+        ),
+        preview_samples=args.preview_samples,
         save_blend=not args.skip_blend_save,
     )
 

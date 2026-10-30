@@ -1,4 +1,4 @@
-"""Construct fitted clothing, socks, and soft house slippers from custom surfaces."""
+"""Construct fitted clothing with clean hems and visible garment finish details."""
 
 from __future__ import annotations
 
@@ -7,16 +7,42 @@ import bpy
 from engine.blender.geometry import create_ellipsoid, create_loft, create_sweep
 
 
+def _front_seam(
+    name: str,
+    points: list[tuple[float, float, float]],
+    material: bpy.types.Material,
+    collection: bpy.types.Collection,
+    *,
+    radius: float = 0.010,
+) -> bpy.types.Object:
+    controls = [(x, y, z, radius, radius * 0.82) for x, y, z in points]
+    return create_sweep(
+        name,
+        controls,
+        material,
+        collection,
+        radial_segments=12,
+        steps_per_span=5,
+        subdivision=1,
+    )
+
+
 def build_outfit(
     collection: bpy.types.Collection,
     *,
     top: bpy.types.Material,
+    top_detail: bpy.types.Material,
     shorts: bpy.types.Material,
+    shorts_detail: bpy.types.Material,
     socks: bpy.types.Material,
     slippers: bpy.types.Material,
     sole: bpy.types.Material,
+    pose: str = "neutral_standing",
 ) -> list[bpy.types.Object]:
-    """Build the initial navy cropped top, grey shorts, socks, and slippers."""
+    """Build the navy top, grey shorts, socks, slippers, and understated seams."""
+
+    if pose not in {"neutral_standing", "mirror_selfie"}:
+        raise ValueError(f"Unsupported outfit presentation pose: {pose}")
 
     objects: list[bpy.types.Object] = []
 
@@ -32,8 +58,8 @@ def build_outfit(
         ],
         top,
         collection,
-        radial_segments=64,
-        steps_per_span=6,
+        radial_segments=72,
+        steps_per_span=7,
         subdivision=2,
     )
     objects.append(top_obj)
@@ -47,8 +73,8 @@ def build_outfit(
         ],
         shorts,
         collection,
-        radial_segments=56,
-        steps_per_span=4,
+        radial_segments=64,
+        steps_per_span=5,
         subdivision=2,
     )
     objects.append(waistband)
@@ -63,11 +89,74 @@ def build_outfit(
         ],
         shorts,
         collection,
-        radial_segments=56,
-        steps_per_span=5,
+        radial_segments=64,
+        steps_per_span=6,
         subdivision=2,
     )
     objects.append(shorts_body)
+
+    # A shallow front collar, lower hem, waistband seam, and fly line break up
+    # the large uninterrupted fabric surfaces without adding noisy micro-detail.
+    objects.append(
+        _front_seam(
+            "Outfit_TopNeckBinding",
+            [
+                (-0.265, -0.180, 3.748),
+                (-0.185, -0.218, 3.772),
+                (-0.095, -0.232, 3.780),
+                (0.0, -0.236, 3.782),
+                (0.095, -0.232, 3.780),
+                (0.185, -0.218, 3.772),
+                (0.265, -0.180, 3.748),
+            ],
+            top_detail,
+            collection,
+            radius=0.012,
+        )
+    )
+    objects.append(
+        _front_seam(
+            "Outfit_TopBottomHem",
+            [
+                (-0.345, -0.195, 3.095),
+                (-0.220, -0.232, 3.080),
+                (0.0, -0.245, 3.075),
+                (0.220, -0.232, 3.080),
+                (0.345, -0.195, 3.095),
+            ],
+            top_detail,
+            collection,
+            radius=0.009,
+        )
+    )
+    objects.append(
+        _front_seam(
+            "Outfit_ShortsWaistSeam",
+            [
+                (-0.315, -0.185, 2.485),
+                (-0.180, -0.230, 2.472),
+                (0.0, -0.250, 2.470),
+                (0.180, -0.230, 2.472),
+                (0.315, -0.185, 2.485),
+            ],
+            shorts_detail,
+            collection,
+            radius=0.008,
+        )
+    )
+    objects.append(
+        _front_seam(
+            "Outfit_ShortsFlySeam",
+            [
+                (0.0, -0.251, 2.435),
+                (0.0, -0.259, 2.335),
+                (0.0, -0.257, 2.225),
+            ],
+            shorts_detail,
+            collection,
+            radius=0.007,
+        )
+    )
 
     for side, label in ((-1.0, "L"), (1.0, "R")):
         sleeve = create_sweep(
@@ -80,11 +169,23 @@ def build_outfit(
             ],
             top,
             collection,
-            radial_segments=28,
-            steps_per_span=5,
+            radial_segments=32,
+            steps_per_span=6,
             subdivision=2,
         )
         objects.append(sleeve)
+        cuff = _front_seam(
+            f"Outfit_SleeveCuff_{label}",
+            [
+                (side * 0.505, -0.118, 3.355),
+                (side * 0.555, -0.130, 3.325),
+                (side * 0.605, -0.115, 3.315),
+            ],
+            top_detail,
+            collection,
+            radius=0.008,
+        )
+        objects.append(cuff)
 
         short_leg = create_sweep(
             f"Outfit_ShortsLeg_{label}",
@@ -95,45 +196,69 @@ def build_outfit(
             ],
             shorts,
             collection,
-            radial_segments=28,
-            steps_per_span=5,
+            radial_segments=32,
+            steps_per_span=6,
             subdivision=2,
         )
         objects.append(short_leg)
-
-        sock = create_sweep(
-            f"Outfit_AnkleSock_{label}",
+        hem = _front_seam(
+            f"Outfit_ShortsLegHem_{label}",
             [
+                (side * 0.055, -0.176, 1.942),
+                (side * 0.180, -0.190, 1.925),
+                (side * 0.300, -0.155, 1.952),
+            ],
+            shorts_detail,
+            collection,
+            radius=0.008,
+        )
+        objects.append(hem)
+
+        is_lifted_leg = pose == "mirror_selfie" and side > 0
+        if is_lifted_leg:
+            sock_controls = [
+                (-0.045, -0.205, 1.255, 0.122, 0.126),
+                (-0.045, -0.205, 1.155, 0.122, 0.125),
+                (-0.045, -0.205, 1.045, 0.112, 0.115),
+            ]
+            slipper_x, slipper_y, slipper_z = -0.085, -0.385, 0.995
+        else:
+            sock_controls = [
                 (side * 0.205, -0.005, 0.43, 0.122, 0.126),
                 (side * 0.205, -0.005, 0.30, 0.122, 0.125),
                 (side * 0.205, -0.005, 0.16, 0.112, 0.115),
-            ],
+            ]
+            slipper_x, slipper_y, slipper_z = side * 0.205, -0.105, 0.095
+
+        sock = create_sweep(
+            f"Outfit_AnkleSock_{label}",
+            sock_controls,
             socks,
             collection,
-            radial_segments=24,
-            steps_per_span=4,
+            radial_segments=28,
+            steps_per_span=5,
             subdivision=1,
         )
         objects.append(sock)
 
         sole_obj = create_ellipsoid(
             f"Outfit_SlipperSole_{label}",
-            (side * 0.205, -0.105, 0.095),
+            (slipper_x, slipper_y, slipper_z - 0.080),
             (0.155, 0.315, 0.050),
             sole,
             collection,
-            segments=32,
-            rings=20,
+            segments=36,
+            rings=22,
             subdivision=1,
         )
         upper_obj = create_ellipsoid(
             f"Outfit_SlipperUpper_{label}",
-            (side * 0.205, -0.095, 0.175),
+            (slipper_x, slipper_y + 0.010, slipper_z),
             (0.145, 0.270, 0.105),
             slippers,
             collection,
-            segments=32,
-            rings=20,
+            segments=36,
+            rings=22,
             subdivision=2,
         )
         objects.extend((sole_obj, upper_obj))
