@@ -300,7 +300,7 @@ def build_character(
     *,
     render_preview: bool = True,
     render_color_preview: bool = True,
-    render_engine: str = "BLENDER_EEVEE_NEXT",
+    render_engine: str = "EEVEE",
     preview_samples: int = 16,
     save_blend: bool = True,
 ) -> dict[str, Any]:
