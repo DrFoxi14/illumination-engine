@@ -3,12 +3,11 @@
 ## Requirements
 
 - Python 3.10 or newer for the pure-Python package and CI.
-- Blender 4.2 or newer for the current build scripts.
+- Blender 4.2 or newer for the current mesh generation and preview scripts.
 - Git.
-- A locally downloaded, rigged Quaternius Universal Base Characters Standard female mesh in glTF/GLB format.
 - Node.js will be required when the Three.js viewer is introduced.
 
-Blender's `bpy` module is supplied by Blender's own Python runtime. Do not add a normal `pip install bpy` step to the base developer setup.
+Blender's `bpy`, `bmesh`, and `mathutils` modules are supplied by Blender's own Python runtime. Do not add a normal `pip install bpy` step to the base developer setup.
 
 ## Python setup
 
@@ -29,64 +28,55 @@ pytest -q
 python -m compileall -q engine tests scripts
 ```
 
-## Download the external base mesh
-
-Use the official [Quaternius Universal Base Characters](https://quaternius.com/packs/universalbasecharacters.html) page and download the Standard pack. Extract it outside this repository. Select the female full-body glTF/GLB asset that includes a humanoid armature.
-
-The asset is deliberately not committed to Git. The pack is CC0; the source code and asset provenance are documented in [asset-sources.md](asset-sources.md).
-
 ## Build Prototype 001
 
-```bash
-blender --background --factory-startup --python scripts/build_character.py -- \
-  --base-mesh "/absolute/path/to/female_full_body.gltf"
-```
-
-The importer auto-selects the largest suitable mesh and the armature with the most bones. When the imported asset has ambiguous names, pass explicit selectors:
+Run the generator inside Blender:
 
 ```bash
-blender --background --factory-startup --python scripts/build_character.py -- \
-  --base-mesh "/absolute/path/to/female_full_body.gltf" \
-  --body-object "ExactBodyObjectName" \
-  --armature-object "ExactArmatureObjectName"
+blender --background --factory-startup --python scripts/build_character.py
 ```
 
-Alternative: set `ILLUMINATION_BASE_MESH` in your shell and omit `--base-mesh`.
+Optional arguments:
 
-The build writes:
+```bash
+blender --background --factory-startup --python scripts/build_character.py -- \
+  --config characters/prototype_001/character.json \
+  --output-dir outputs/prototype_001 \
+  --skip-render
+```
+
+The default build reads `characters/prototype_001/character.json` and creates the character from custom parametric meshes. No external base mesh is downloaded or imported.
+
+Expected outputs:
 - `outputs/prototype_001/prototype_001.blend`
 - `outputs/prototype_001/prototype_001_preview.png`
 - `outputs/prototype_001/silhouette_front.png`
 - `outputs/prototype_001/silhouette_side.png`
 - `outputs/prototype_001/silhouette_three_quarter.png`
 
-Use `--skip-render` to generate and save the scene without PNG renders.
+## Generation modules
 
-## Current character build stages
-
-1. Import a rigged external humanoid mesh.
-2. Identify the main body and armature.
-3. Create fitted clothing shells by trimming a duplicate of the body's topology.
-4. Preserve inherited vertex groups and append a fabric Solidify modifier.
-5. Add a stylized long-lock hair blockout if the imported asset has no hair object.
-6. Create simple slipper blockout meshes.
-7. Produce silhouette and color preview renders.
-
-This is still a blockout. The first local render must be reviewed from front, side, and three-quarter views before P1 is accepted.
+- `engine/blender/geometry.py`: profile lofts, tapered swept meshes, ellipsoid meshes, and material construction.
+- `engine/blender/head.py`: head and jaw profile.
+- `engine/blender/body.py`: torso, neck, limbs, hands, and fingers.
+- `engine/blender/face.py`: eyes, lids, brows, nose, mouth, and ears.
+- `engine/blender/hair.py`: scalp cap and volumetric hair clumps.
+- `engine/blender/outfit.py`: clothing and footwear blockout.
+- `engine/blender/character_builder.py`: scene assembly, preview camera, lighting, and render passes.
 
 ## Runtime separation
 
 The pure-Python core must not import `bpy`. Blender-specific modules are imported only inside Blender's bundled Python runtime.
 
-The web viewer is downstream from future Blender exports. Do not implement an independent second character model in Three.js.
+The web viewer will be downstream from future Blender exports. Do not implement an independent second character model in Three.js.
 
 ## CI policy
 
-GitHub Actions runs pure-Python linting, compilation, and unit tests. It does not install Blender, download the Quaternius asset, or run 3D renders. Blender integration checks and visual review must run locally or on a dedicated Blender runner.
+GitHub Actions runs pure-Python linting, unit tests, and Python compilation. It does not install Blender or run 3D renders. Blender execution and visual inspection must run locally or on a dedicated Blender runner.
 
 ## Generated files
 
-Keep renders, temporary exports, caches, local environments, and third-party base assets out of version control. Commit source specifications, scripts, tests, and documentation only.
+Keep renders, temporary exports, caches, local environments, and downloaded third-party files out of version control. Commit source specifications, scripts, tests, and documentation only.
 
 ## Contribution discipline
 
