@@ -10,8 +10,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from engine.core.config import load_character_config
-
 
 def _arguments() -> argparse.Namespace:
     blender_args = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
@@ -42,6 +40,8 @@ def _arguments() -> argparse.Namespace:
 
 
 def main() -> int:
+    from engine.core.config import load_character_config
+
     args = _arguments()
     config = load_character_config(args.config)
 
