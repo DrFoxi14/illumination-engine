@@ -6,6 +6,7 @@ and footwear are generated from editable parametric surfaces in Blender.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +19,8 @@ from engine.blender.geometry import create_material
 from engine.blender.hair import build_hair
 from engine.blender.head import build_head
 from engine.blender.outfit import build_outfit
+from engine.blender.skin import unify_skin_surface
+from engine.blender.validation import validate_character_scene
 from engine.core.config import CharacterConfig
 
 
@@ -236,6 +239,7 @@ def build_character(
     output_dir: str | Path,
     *,
     render_preview: bool = True,
+    render_color_preview: bool = True,
     save_blend: bool = True,
 ) -> dict[str, Any]:
     """Generate Prototype 001 from custom parametric geometry."""
@@ -256,6 +260,12 @@ def build_character(
     body_objects = build_body(character_collection, palette["skin"])
     head_scale = 0.98 + (config.proportions.head_to_body_ratio - 0.46) * 0.35
     head = build_head(character_collection, palette["skin"], scale=head_scale)
+    skin_object = unify_skin_surface(
+        [*body_objects, head],
+        palette["skin"],
+        voxel_size=0.012,
+        smooth_iterations=3,
+    )
     face_objects = build_face(
         face_collection,
         skin=palette["skin"],
@@ -285,8 +295,19 @@ def build_character(
     preview_path = output_path / f"{config.character_id}_preview.png"
     silhouette_paths: list[str] = []
 
+    validation_report = validate_character_scene()
+    validation_report["character_id"] = config.character_id
+    validation_report["construction"] = "original_parametric_meshes"
+    validation_path = output_path / "validation_report.json"
+    validation_path.write_text(
+        json.dumps(validation_report, indent=2) + "\\n",
+        encoding="utf-8",
+    )
+
     if render_preview:
         silhouette_paths = _render_silhouette_views(camera, target, output_path)
+
+    if render_color_preview:
         camera.location = (5.6, -10.8, 4.1)
         _look_at(camera, target)
         scene = bpy.context.scene
@@ -306,7 +327,9 @@ def build_character(
         "character_id": config.character_id,
         "construction": "original_parametric_meshes",
         "body_object_count": len(body_objects),
-        "head_object": head.name,
+        "skin_object": skin_object.name,
+        "skin_vertices": len(skin_object.data.vertices),
+        "skin_faces": len(skin_object.data.polygons),
         "face_object_count": len(face_objects),
         "hair_object_count": len(hair_objects),
         "outfit_object_count": len(outfit_objects),
@@ -314,6 +337,8 @@ def build_character(
         "facial_rig_status": "planned_not_implemented",
         "body_rig_status": "planned_not_implemented",
         "blend_path": str(blend_path) if save_blend else None,
-        "preview_path": str(preview_path) if render_preview else None,
+        "preview_path": str(preview_path) if render_color_preview else None,
         "silhouette_renders": silhouette_paths,
+        "validation_report_path": str(validation_path),
+        "validation": validation_report,
     }
