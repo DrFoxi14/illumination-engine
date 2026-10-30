@@ -217,32 +217,55 @@ def create_sweep(
     steps_per_span: int = 6,
     subdivision: int = 1,
 ) -> bpy.types.Object:
-    """Create an organic tapered tube through 3D control points.
+    """Create a closed, tapered quad tube with a parallel-transport frame.
 
-    Each control point is (x, y, z, radius_u, radius_v). A moving local frame
-    keeps the cross-sections oriented along the curve.
+    Each control point is (x, y, z, radius_u, radius_v). Parallel transport avoids
+    sudden cross-section flips when the curve changes direction.
     """
 
     if len(controls) < 2:
         raise ValueError("A sweep requires at least two control points")
+    if radial_segments < 8:
+        raise ValueError("radial_segments must be at least 8")
+    if any(point[3] <= 0.0 or point[4] <= 0.0 for point in controls):
+        raise ValueError("Sweep radii must be positive")
+
     samples = _sample_controls(controls, steps_per_span)
     centers = [Vector(sample[:3]) for sample in samples]
-    vertices: list[tuple[float, float, float]] = []
+    tangents: list[Vector] = []
 
-    for index, (sample, center) in enumerate(zip(samples, centers, strict=True)):
+    for index, center in enumerate(centers):
         previous = centers[max(index - 1, 0)]
         following = centers[min(index + 1, len(centers) - 1)]
-        tangent = (following - previous).normalized()
-        if tangent.length < 1e-8:
-            tangent = Vector((0.0, 0.0, 1.0))
+        direction = following - previous
+        if direction.length < 1e-8:
+            raise ValueError(f"Sweep '{name}' contains a zero-length tangent at sample {index}")
+        tangents.append(direction.normalized())
 
-        reference = Vector((0.0, 1.0, 0.0))
-        if abs(tangent.dot(reference)) > 0.92:
-            reference = Vector((1.0, 0.0, 0.0))
-        axis_u = tangent.cross(reference).normalized()
+    vertices: list[tuple[float, float, float]] = []
+    previous_tangent: Vector | None = None
+    previous_axis_u: Vector | None = None
+
+    for sample, center, tangent in zip(samples, centers, tangents, strict=True):
+        if previous_tangent is None or previous_axis_u is None:
+            reference = Vector((0.0, 1.0, 0.0))
+            if abs(tangent.dot(reference)) > 0.92:
+                reference = Vector((1.0, 0.0, 0.0))
+            axis_u = tangent.cross(reference).normalized()
+        else:
+            rotation = previous_tangent.rotation_difference(tangent)
+            transported = rotation @ previous_axis_u
+            axis_u = transported - tangent * transported.dot(tangent)
+            if axis_u.length < 1e-8:
+                reference = Vector((0.0, 1.0, 0.0))
+                if abs(tangent.dot(reference)) > 0.92:
+                    reference = Vector((1.0, 0.0, 0.0))
+                axis_u = tangent.cross(reference)
+            axis_u.normalize()
+
         axis_v = tangent.cross(axis_u).normalized()
-        radius_u = max(sample[3], 0.001)
-        radius_v = max(sample[4], 0.001)
+        radius_u = sample[3]
+        radius_v = sample[4]
 
         for segment in range(radial_segments):
             angle = math.tau * segment / radial_segments
@@ -252,6 +275,9 @@ def create_sweep(
                 + axis_v * (math.sin(angle) * radius_v)
             )
             vertices.append(tuple(point))
+
+        previous_tangent = tangent
+        previous_axis_u = axis_u
 
     faces: list[tuple[int, ...]] = []
     for ring in range(len(samples) - 1):
@@ -299,16 +325,18 @@ def create_ellipsoid(
     rings: int = 20,
     subdivision: int = 1,
 ) -> bpy.types.Object:
-    """Create a smooth UV ellipsoid mesh without Blender primitive operators."""
+    """Create a watertight UV ellipsoid with single-vertex poles."""
 
     if min(scale) <= 0.0:
         raise ValueError("Ellipsoid scale values must be positive")
-    vertices: list[tuple[float, float, float]] = []
-    faces: list[tuple[int, ...]] = []
+    if segments < 8 or rings < 4:
+        raise ValueError("Ellipsoids require at least 8 segments and 4 latitude rings")
+
     cx, cy, cz = location
     sx, sy, sz = scale
+    vertices: list[tuple[float, float, float]] = [(cx, cy, cz - sz)]
 
-    for ring in range(rings + 1):
+    for ring in range(1, rings):
         latitude = -math.pi / 2.0 + math.pi * ring / rings
         z = math.sin(latitude)
         radial = math.cos(latitude)
@@ -322,9 +350,18 @@ def create_ellipsoid(
                 )
             )
 
-    for ring in range(rings):
-        current = ring * segments
-        following = (ring + 1) * segments
+    top_index = len(vertices)
+    vertices.append((cx, cy, cz + sz))
+    faces: list[tuple[int, ...]] = []
+
+    first_ring = 1
+    for segment in range(segments):
+        nxt = (segment + 1) % segments
+        faces.append((0, first_ring + nxt, first_ring + segment))
+
+    for ring in range(rings - 2):
+        current = first_ring + ring * segments
+        following = current + segments
         for segment in range(segments):
             nxt = (segment + 1) % segments
             faces.append(
@@ -335,6 +372,11 @@ def create_ellipsoid(
                     following + segment,
                 )
             )
+
+    last_ring = first_ring + (rings - 2) * segments
+    for segment in range(segments):
+        nxt = (segment + 1) % segments
+        faces.append((top_index, last_ring + segment, last_ring + nxt))
 
     return _mesh_object(
         name,
