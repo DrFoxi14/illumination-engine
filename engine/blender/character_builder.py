@@ -15,8 +15,8 @@ from mathutils import Vector
 
 from engine.blender.base_mesh import import_humanoid_base
 from engine.blender.body_topology import build_bodytopo_garment
-from engine.blender.grooming import build_long_hair_blockout
 from engine.blender.footwear import build_slippers
+from engine.blender.grooming import build_long_hair_blockout
 from engine.core.config import CharacterConfig
 from engine.core.garment_rules import keep_crop_top, keep_shorts, keep_socks
 
