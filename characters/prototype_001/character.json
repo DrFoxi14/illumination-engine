@@ -1,15 +1,36 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "character_id": "prototype_001",
   "display_name": "Prototype One",
   "visual_style": "stylized_cinematic",
   "proportions": {
-    "head_to_body_ratio": 0.42,
-    "eye_scale": 1.15
+    "head_to_body_ratio": 0.46,
+    "eye_scale": 1.22
   },
   "features": {
     "facial_rig": true,
     "body_rig": true,
     "grooming": true
+  },
+  "hair": {
+    "style": "long_straight",
+    "part": "left",
+    "color": "#A87548",
+    "highlight_color": "#D5AE7D"
+  },
+  "face": {
+    "skin_color": "#D7A27F",
+    "iris_color": "#76543A"
+  },
+  "outfit": {
+    "top_color": "#172B59",
+    "shorts_color": "#B9B9B4",
+    "socks_color": "#F4F1E9",
+    "slipper_color": "#F0EBDD",
+    "sole_color": "#8A755B"
+  },
+  "pose": {
+    "style": "mirror_selfie",
+    "phone_visible": true
   }
 }
