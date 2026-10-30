@@ -40,4 +40,4 @@ jobs:
         run: pytest -q
 
       - name: Compile Python modules
-        run: python -m compileall -q engine tests
+        run: python -m compileall -q engine tests scripts
