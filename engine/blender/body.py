@@ -55,15 +55,39 @@ def build_body(
     objects.append(neck)
 
     for side, label in ((-1.0, "L"), (1.0, "R")):
-        leg = create_sweep(
-            f"Body_Leg_{label}",
-            [
+        is_lifted_leg = pose == "mirror_selfie" and side > 0
+        if is_lifted_leg:
+            leg_controls = [
+                (side * 0.19, 0.005, 2.34, 0.205, 0.205),
+                (side * 0.215, 0.0, 1.95, 0.178, 0.175),
+                (side * 0.345, -0.035, 1.55, 0.145, 0.145),
+                (side * 0.165, -0.125, 1.285, 0.118, 0.120),
+                (-0.045, -0.205, 1.105, 0.104, 0.108),
+            ]
+            foot_controls = [
+                (-0.045, -0.205, 1.105, 0.105, 0.110),
+                (-0.055, -0.325, 1.035, 0.118, 0.145),
+                (-0.085, -0.465, 1.015, 0.102, 0.180),
+                (-0.105, -0.535, 1.005, 0.078, 0.135),
+            ]
+        else:
+            leg_controls = [
                 (side * 0.19, 0.005, 2.34, 0.205, 0.205),
                 (side * 0.205, 0.0, 1.92, 0.178, 0.175),
                 (side * 0.215, -0.015, 1.37, 0.135, 0.135),
                 (side * 0.215, 0.0, 0.87, 0.112, 0.115),
                 (side * 0.205, -0.015, 0.36, 0.105, 0.11),
-            ],
+            ]
+            foot_controls = [
+                (side * 0.205, -0.005, 0.36, 0.105, 0.105),
+                (side * 0.205, -0.125, 0.255, 0.115, 0.145),
+                (side * 0.205, -0.285, 0.205, 0.108, 0.185),
+                (side * 0.205, -0.365, 0.190, 0.082, 0.135),
+            ]
+
+        leg = create_sweep(
+            f"Body_Leg_{label}",
+            leg_controls,
             skin,
             collection,
             radial_segments=32,
@@ -73,12 +97,7 @@ def build_body(
         objects.append(leg)
         foot = create_sweep(
             f"Body_Foot_{label}",
-            [
-                (side * 0.205, -0.005, 0.36, 0.105, 0.105),
-                (side * 0.205, -0.125, 0.255, 0.115, 0.145),
-                (side * 0.205, -0.285, 0.205, 0.108, 0.185),
-                (side * 0.205, -0.365, 0.190, 0.082, 0.135),
-            ],
+            foot_controls,
             skin,
             collection,
             radial_segments=28,
