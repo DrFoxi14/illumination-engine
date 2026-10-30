@@ -138,6 +138,22 @@ def test_character_build_has_cpu_validation_render_mode() -> None:
     assert "unify_skin_surface(" in builder_source
 
 
+
+def test_character_build_has_color_only_cycles_preview() -> None:
+    cli_source = (ROOT / "scripts" / "build_character.py").read_text(encoding="utf-8")
+    builder_source = (
+        ROOT / "engine" / "blender" / "character_builder.py"
+    ).read_text(encoding="utf-8")
+    hair_source = (ROOT / "engine" / "blender" / "hair.py").read_text(encoding="utf-8")
+
+    assert "--color-only" in cli_source
+    assert "--preview-engine" in cli_source
+    assert "render_engine=\n" in cli_source
+    assert 'scene.cycles.device = "CPU"' in builder_source
+    assert "Hair_FaceFrame_" in hair_source
+    assert "Hair_BackLock_" in hair_source
+
+
 def test_character_generator_does_not_require_external_base_mesh() -> None:
     cli_source = (ROOT / "scripts" / "build_character.py").read_text(encoding="utf-8")
     builder_source = (
