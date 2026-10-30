@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import bpy
-from mathutils import Vector
-
 from engine.blender.geometry import create_ellipsoid, create_loft, create_sweep
 
 
@@ -15,7 +12,6 @@ def build_body(
     """Create a stylized torso, neck, arms, palms, and legs in a relaxed A-pose."""
 
     objects: list[bpy.types.Object] = []
-
     torso = create_loft(
         "Body_Torso",
         [
@@ -36,7 +32,6 @@ def build_body(
         subdivision=2,
     )
     objects.append(torso)
-
     neck = create_sweep(
         "Body_Neck",
         [
@@ -69,7 +64,6 @@ def build_body(
             subdivision=2,
         )
         objects.append(leg)
-
         arm = create_sweep(
             f"Body_Arm_{label}",
             [
@@ -85,7 +79,6 @@ def build_body(
             subdivision=2,
         )
         objects.append(arm)
-
         palm = create_ellipsoid(
             f"Body_Palm_{label}",
             (side * 0.73, -0.055, 2.76),
@@ -116,7 +109,6 @@ def build_body(
                 subdivision=1,
             )
             objects.append(finger)
-
         thumb = create_sweep(
             f"Body_Thumb_{label}",
             [
@@ -131,5 +123,4 @@ def build_body(
             subdivision=1,
         )
         objects.append(thumb)
-
     return objects
