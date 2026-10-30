@@ -54,7 +54,7 @@ def _build_phone(
 ) -> list[bpy.types.Object]:
     """Create a small beveled phone prop beside the raised selfie hand."""
 
-    bpy.ops.mesh.primitive_cube_add(size=1.0, location=(0.355, -0.535, 4.625))
+    bpy.ops.mesh.primitive_cube_add(size=1.0, location=(0.635, -0.535, 4.625))
     phone = bpy.context.object
     phone.name = "Phone_Back"
     phone.dimensions = (0.180, 0.040, 0.305)
@@ -73,7 +73,7 @@ def _build_phone(
     for index, offset in enumerate((-0.035, 0.035), start=1):
         lens = create_ellipsoid(
             f"Phone_Camera_Lens_{index}",
-            (0.355 + offset, -0.560, 4.735),
+            (0.635 + offset, -0.560, 4.735),
             (0.018, 0.007, 0.018),
             lens_material,
             collection,
@@ -100,7 +100,7 @@ def _create_stage(
         current.objects.unlink(floor)
     collection.objects.link(floor)
 
-    bpy.ops.object.camera_add(location=(5.6, -10.8, 4.1))
+    bpy.ops.object.camera_add(location=(3.2, -11.8, 4.15))
     camera = bpy.context.object
     camera.name = "Character_Review_Camera"
     camera.data.type = "ORTHO"
@@ -112,10 +112,10 @@ def _create_stage(
     scene.camera = camera
 
     light_specs = [
-        ("Key_Softbox", (-4.4, -6.0, 7.2), 1750.0, 5.0),
-        ("Fill_Softbox", (4.8, -4.0, 4.5), 900.0, 4.5),
-        ("Hair_Rim", (0.0, 3.0, 6.5), 2200.0, 3.0),
-        ("Eye_Catchlight", (0.0, -6.0, 3.8), 180.0, 1.4),
+        ("Key_Softbox", (-4.4, -6.0, 7.2), 1250.0, 5.0),
+        ("Fill_Softbox", (4.8, -4.0, 4.5), 520.0, 4.5),
+        ("Hair_Rim", (0.0, 3.0, 6.5), 1450.0, 3.0),
+        ("Eye_Catchlight", (0.0, -6.0, 3.8), 95.0, 1.4),
     ]
     for name, location, energy, size in light_specs:
         bpy.ops.object.light_add(type="AREA", location=location)
@@ -135,7 +135,7 @@ def _create_stage(
     background = scene.world.node_tree.nodes.get("Background")
     if background is not None:
         background.inputs["Color"].default_value = (0.58, 0.64, 0.76, 1.0)
-        background.inputs["Strength"].default_value = 0.42
+        background.inputs["Strength"].default_value = 0.30
 
     _set_eevee_engine(scene)
     scene.render.resolution_x = 1100
@@ -227,8 +227,8 @@ def _create_material_palette(config: CharacterConfig) -> dict[str, bpy.types.Mat
         "skin": create_material(
             "Skin_Warm_Cinematic",
             config.face.skin_color,
-            roughness=0.48,
-            subsurface=0.075,
+            roughness=0.56,
+            subsurface=0.045,
         ),
         "iris": create_material(
             "Iris_Deep_Hazel",
@@ -247,14 +247,14 @@ def _create_material_palette(config: CharacterConfig) -> dict[str, bpy.types.Mat
         "hair": create_material(
             "Hair_Warm_Base",
             config.hair.color,
-            roughness=0.34,
-            coat=0.23,
+            roughness=0.54,
+            coat=0.08,
         ),
         "hair_highlight": create_material(
             "Hair_Golden_Highlight",
-            config.hair.highlight_color,
-            roughness=0.30,
-            coat=0.25,
+            "#D3AC77",
+            roughness=0.52,
+            coat=0.08,
         ),
         "top": create_material(
             "Fabric_Navy_Blue",
@@ -404,7 +404,7 @@ def build_character(
 
     actual_preview_engine: str | None = None
     if render_color_preview:
-        camera.location = (5.6, -10.8, 4.1)
+        camera.location = (3.2, -11.8, 4.15)
         _look_at(camera, target)
         scene = bpy.context.scene
         actual_preview_engine = (
