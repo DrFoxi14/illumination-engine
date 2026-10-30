@@ -120,7 +120,9 @@ def build_body(
                 finger = create_sweep(
                     f"Body_Finger_{label}_{finger_index + 1}",
                     [
-                        (side * (0.395 + offset * 0.025), -0.438, 4.505 + offset * 0.040, 0.021, 0.020),
+                        # The first control sits well inside the palm volume so voxel
+                        # remeshing fuses each finger root into the hand reliably.
+                        (side * (0.350 + offset * 0.015), -0.390, 4.475 + offset * 0.025, 0.025, 0.023),
                         (side * (0.430 + offset * 0.022), -0.475, 4.485 + offset * 0.040, 0.018, 0.017),
                         (side * (0.435 + offset * 0.020), -0.486, 4.455 + offset * 0.040, 0.009, 0.010),
                     ],
