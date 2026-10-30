@@ -3,7 +3,7 @@
 ## Requirements
 
 - Python 3.10 or newer for the pure-Python package and CI.
-- Blender 4.5 LTS recommended. The automated headless scene build is pinned to Blender 4.5.15.
+- Blender 4.5 LTS or newer. The renderer selects the EEVEE identifier exposed by the running version, so Blender 4.x and 5.x are supported. The automated headless scene build is pinned to Blender 4.5.15.
 - Git.
 - Node.js will be required when the Three.js viewer is introduced.
 
@@ -66,7 +66,7 @@ Expected outputs:
 - `outputs/validation/silhouette_side.png`
 - `outputs/validation/silhouette_three_quarter.png`
 
-The full local EEVEE preview additionally writes `prototype_001_preview.png`. For a headless shaded preview, use `--color-only --preview-engine cycles --preview-samples 16`; this selects CPU Cycles and writes the same preview filename.
+The default local EEVEE preview additionally writes `prototype_001_preview.png`. The first character presentation uses the static `mirror_selfie` pose and includes a phone prop when `phone_visible` is true. For a headless shaded preview, use `--color-only --preview-engine cycles --preview-samples 16`; this selects CPU Cycles and writes the same preview filename.
 
 ## Generation modules
 
@@ -74,11 +74,11 @@ The full local EEVEE preview additionally writes `prototype_001_preview.png`. Fo
 - `engine/blender/head.py`: head and jaw profile.
 - `engine/blender/body.py`: torso, neck, limbs, hands, and feet.
 - `engine/blender/skin.py`: applies anatomical subdivision, joins the anatomical components, and voxel-remeshes one continuous skin mesh.
-- `engine/blender/face.py`: eyes, lids, brows, nose, mouth, and ears.
-- `engine/blender/hair.py`: scalp cap and volumetric hair clumps.
-- `engine/blender/outfit.py`: clothing and footwear blockout.
+- `engine/blender/face.py`: inset-style eyes, eyelids, creases, brows, nose, mouth, and ears.
+- `engine/blender/hair.py`: layered swept fringe, face frames, flattened side/back hair clumps.
+- `engine/blender/outfit.py`: clothing and footwear blockout with seam/hem details.
 - `engine/blender/validation.py`: required object, coordinate, face-area, loose-geometry, and manifold checks.
-- `engine/blender/character_builder.py`: scene assembly, validation report, preview camera, lighting, and render passes.
+- `engine/blender/character_builder.py`: scene assembly, phone prop, version-aware EEVEE selection, validation report, preview camera, lighting, and render passes.
 
 ## Runtime separation
 
