@@ -6,11 +6,10 @@ not wrap Blender's primitive-sphere operators and do not depend on external asse
 
 from __future__ import annotations
 
-import math
-from collections.abc import Sequence
-
 import bmesh
 import bpy
+import math
+from collections.abc import Sequence
 from mathutils import Vector
 
 Profile = tuple[float, float, float, float, float]
