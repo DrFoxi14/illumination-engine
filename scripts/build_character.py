@@ -26,10 +26,16 @@ def _arguments() -> argparse.Namespace:
         default=PROJECT_ROOT / "outputs" / "prototype_001",
         help="Directory for the .blend file and preview renders.",
     )
-    parser.add_argument(
+    render_group = parser.add_mutually_exclusive_group()
+    render_group.add_argument(
         "--skip-render",
         action="store_true",
         help="Build and save the scene without rendering PNG previews.",
+    )
+    render_group.add_argument(
+        "--silhouette-only",
+        action="store_true",
+        help="Render front/side/three-quarter Workbench silhouettes without an EEVEE color render.",
     )
     parser.add_argument(
         "--skip-blend-save",
@@ -50,6 +56,7 @@ def main() -> int:
         config,
         args.output_dir,
         render_preview=not args.skip_render,
+        render_color_preview=not args.skip_render and not args.silhouette_only,
         save_blend=not args.skip_blend_save,
     )
 
