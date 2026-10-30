@@ -16,6 +16,7 @@ from mathutils import Vector
 from engine.blender.base_mesh import import_humanoid_base
 from engine.blender.body_topology import build_bodytopo_garment
 from engine.blender.grooming import build_long_hair_blockout
+from engine.blender.footwear import build_slippers
 from engine.core.config import CharacterConfig
 from engine.core.garment_rules import keep_crop_top, keep_shorts, keep_socks
 
@@ -301,6 +302,14 @@ def build_character(
         solidify_thickness=0.002,
     )
 
+    slippers = build_slippers(
+        body,
+        armature=imported.armature,
+        slipper_color=config.outfit.slipper_color,
+        sole_color=config.outfit.sole_color,
+        collection=generated_collection,
+    )
+
     imported_hair = [
         obj
         for obj in imported.objects
@@ -360,6 +369,7 @@ def build_character(
         "top": {key: value for key, value in top.items() if key != "object"},
         "shorts": {key: value for key, value in shorts.items() if key != "object"},
         "socks": {key: value for key, value in socks.items() if key != "object"},
+        "slipper_object_count": len(slippers),
         "hair_object_count": len(hair_objects),
         "hair_source": hair_source,
         "blend_path": str(blend_path) if save_blend else None,
