@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import bpy
-
 from engine.blender.geometry import create_loft
 
 
