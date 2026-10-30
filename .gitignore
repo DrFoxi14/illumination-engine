@@ -33,3 +33,5 @@ dist/
 
 # Web dependencies (viewer is introduced in a later milestone)
 node_modules/
+# CI-downloaded Blender runtime
+.blender-4.5.15/
