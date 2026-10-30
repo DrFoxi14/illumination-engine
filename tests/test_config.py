@@ -126,7 +126,6 @@ def test_pure_python_core_does_not_import_bpy() -> None:
         assert "import bpy" not in path.read_text(encoding="utf-8")
 
 
-
 def test_character_build_has_cpu_validation_render_mode() -> None:
     cli_source = (ROOT / "scripts" / "build_character.py").read_text(encoding="utf-8")
     builder_source = (
