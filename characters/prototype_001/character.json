@@ -30,7 +30,7 @@
     "sole_color": "#8A755B"
   },
   "pose": {
-    "style": "neutral_standing",
-    "phone_visible": false
+    "style": "mirror_selfie",
+    "phone_visible": true
   }
 }
