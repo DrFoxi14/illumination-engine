@@ -66,10 +66,11 @@ def _arguments() -> argparse.Namespace:
 
 
 def main() -> int:
+    args = _arguments()
+
     from engine.core.config import load_character_config
     from engine.blender.character_builder import build_character
 
-    args = _arguments()
     config = load_character_config(args.config)
     result = build_character(
         config,
