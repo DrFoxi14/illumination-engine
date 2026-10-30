@@ -24,5 +24,5 @@ def test_prefers_current_identifier_when_both_are_available() -> None:
 
 
 def test_reports_available_engines_when_eevee_is_missing() -> None:
-    with pytest.raises(RuntimeError, match="CYCLES, BLENDER_WORKBENCH"):
+    with pytest.raises(RuntimeError, match="BLENDER_WORKBENCH, CYCLES"):
         choose_eevee_engine({"CYCLES", "BLENDER_WORKBENCH"})
