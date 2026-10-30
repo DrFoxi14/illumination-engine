@@ -27,6 +27,26 @@ REQUIRED_OBJECTS = (
 )
 
 
+def _component_count(bm: bmesh.types.BMesh) -> int:
+    visited: set[bmesh.types.BMFace] = set()
+    components = 0
+
+    for start in bm.faces:
+        if start in visited:
+            continue
+        components += 1
+        stack = [start]
+        while stack:
+            face = stack.pop()
+            if face in visited:
+                continue
+            visited.add(face)
+            for edge in face.edges:
+                stack.extend(linked for linked in edge.link_faces if linked not in visited)
+
+    return components
+
+
 def _mesh_report(obj: bpy.types.Object) -> dict[str, Any]:
     mesh = obj.data
     if len(mesh.vertices) < 8 or len(mesh.polygons) < 6:
@@ -52,6 +72,7 @@ def _mesh_report(obj: bpy.types.Object) -> dict[str, Any]:
         non_manifold_edges = sum(not edge.is_manifold for edge in bm.edges)
         loose_vertices = sum(not vertex.link_edges for vertex in bm.verts)
         loose_edges = sum(not edge.link_faces for edge in bm.edges)
+        connected_components = _component_count(bm)
     finally:
         bm.free()
 
@@ -71,6 +92,7 @@ def _mesh_report(obj: bpy.types.Object) -> dict[str, Any]:
         "non_manifold_edges": non_manifold_edges,
         "loose_vertices": loose_vertices,
         "loose_edges": loose_edges,
+        "connected_components": connected_components,
         "materials": len(mesh.materials),
         "modifiers": [modifier.type for modifier in obj.modifiers],
     }
@@ -104,8 +126,11 @@ def validate_character_scene() -> dict[str, Any]:
         )
 
     skin_report = next(report for report in mesh_reports if report["name"] == "Character_Skin")
-    if skin_report["boundary_edges"] != 0:
-        raise RuntimeError("Unified skin surface must be watertight")
+    if skin_report["connected_components"] != 1:
+        raise RuntimeError(
+            "Unified skin surface must be one connected component, found "
+            f"{skin_report['connected_components']}"
+        )
 
     return {
         "status": "passed",
