@@ -144,6 +144,8 @@ def test_character_build_has_cpu_validation_render_mode() -> None:
     body_source = (ROOT / "engine" / "blender" / "body.py").read_text(encoding="utf-8")
     outfit_source = (ROOT / "engine" / "blender" / "outfit.py").read_text(encoding="utf-8")
     assert "is_lifted_leg = pose == \"mirror_selfie\" and side > 0" in body_source
+    assert "-0.585, 4.485" in body_source
+    assert "-0.600, 4.455" in body_source
     assert "is_lifted_leg = pose == \"mirror_selfie\" and side > 0" in outfit_source
     assert "Outfit_SlipperSole_" in outfit_source
 
