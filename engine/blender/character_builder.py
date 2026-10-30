@@ -34,6 +34,18 @@ def _look_at(obj: bpy.types.Object, target: Vector) -> None:
     obj.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
 
 
+def _set_eevee_engine(scene: bpy.types.Scene) -> str:
+    """Select the EEVEE identifier supported by the running Blender version."""
+
+    from engine.blender.compat import choose_eevee_engine
+
+    engine_enum = scene.render.bl_rna.properties["engine"]
+    available = {item.identifier for item in engine_enum.enum_items}
+    selected = choose_eevee_engine(available)
+    scene.render.engine = selected
+    return selected
+
+
 def _create_stage(
     collection: bpy.types.Collection,
     *,
@@ -86,7 +98,7 @@ def _create_stage(
         background.inputs["Color"].default_value = (0.58, 0.64, 0.76, 1.0)
         background.inputs["Strength"].default_value = 0.42
 
-    scene.render.engine = "BLENDER_EEVEE_NEXT"
+    _set_eevee_engine(scene)
     scene.render.resolution_x = 1100
     scene.render.resolution_y = 1400
     scene.render.resolution_percentage = 100
@@ -310,7 +322,7 @@ def build_character(
         camera.location = (5.6, -10.8, 4.1)
         _look_at(camera, target)
         scene = bpy.context.scene
-        scene.render.engine = "BLENDER_EEVEE_NEXT"
+        _set_eevee_engine(scene)
         scene.render.resolution_x = 1100
         scene.render.resolution_y = 1400
         scene.render.resolution_percentage = 100
