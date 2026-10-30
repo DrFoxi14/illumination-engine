@@ -139,6 +139,11 @@ def test_character_build_has_cpu_validation_render_mode() -> None:
     assert "unify_skin_surface(" in builder_source
     assert "pose=config.pose.style" in builder_source
     assert "_build_phone(" in builder_source
+    body_source = (ROOT / "engine" / "blender" / "body.py").read_text(encoding="utf-8")
+    outfit_source = (ROOT / "engine" / "blender" / "outfit.py").read_text(encoding="utf-8")
+    assert "is_lifted_leg = pose == \"mirror_selfie\" and side > 0" in body_source
+    assert "is_lifted_leg = pose == \"mirror_selfie\" and side > 0" in outfit_source
+    assert "Outfit_SlipperSole_" in outfit_source
 
 
 def test_character_build_has_color_only_cycles_preview() -> None:
