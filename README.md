@@ -114,9 +114,9 @@ No Quaternius, MakeHuman, MPFB, downloaded character mesh, or third-party charac
 
 ## Current P1 boundaries
 
-P1 is a custom procedural blockout, not a finished feature-film character. The anatomical parts are now joined into one watertight remeshed skin surface, but this is not final animation topology. The face does not yet have production edge flow around the eyelids and mouth. Facial and body rigs, shape keys, skin weights, cloth simulation, advanced groom simulation, selfie posing, GLB export, and the web viewer remain later milestones.
+P1 is a custom procedural blockout, not a finished feature-film character. The anatomical parts are now joined into one watertight remeshed skin surface, but this is not final animation topology. The refined blockout now uses inset-style eyes with eyelid arcs, layered swept hair clumps, garment seam details, and a static mirror-selfie arm/phone presentation pose. Production facial/body rigs, shape keys, skin weights, cloth simulation, strand-level groom simulation, GLB export, and the web viewer remain later milestones.
 
-The Blender integration workflow verifies the generated scene's required objects and closed mesh invariants, then produces CPU-only silhouette renders. It also attempts a low-sample Cycles CPU color preview as a best-effort visual artifact. This proves the scene can be constructed and rendered in Blender; it does not certify artistic quality. P1 still requires visual review and refinement of the face, silhouette, hair, clothing, and intersections.
+The Blender integration workflow verifies the generated scene's required objects and closed mesh invariants, then produces CPU-only silhouette renders. It also attempts a low-sample Cycles CPU color preview as a best-effort visual artifact. EEVEE is selected from the identifiers exposed by Blender at runtime, supporting both Blender 4.x and 5.x. This proves the scene can be constructed and rendered in Blender; it does not certify artistic quality. P1 still requires visual review and refinement of the face, silhouette, hair, clothing, and intersections.
 
 ## Project principles
 
