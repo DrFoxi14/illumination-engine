@@ -7,7 +7,7 @@ Prototype 001 is an original stylized cinematic character informed by broad, non
 - Dark navy short-sleeved cropped top.
 - Light-grey shorts.
 - Light socks and soft house slippers.
-- A static mirror-selfie presentation pose with a handheld phone prop.
+- A static mirror-selfie presentation pose with a handheld phone prop and one bent, lifted leg.
 
 The face is original because the reference image obscures much of it. The design uses an expressive, friendly face, but it does not attempt an exact facial likeness.
 
