@@ -37,8 +37,12 @@ def build_outfit(
     socks: bpy.types.Material,
     slippers: bpy.types.Material,
     sole: bpy.types.Material,
+    pose: str = "neutral_standing",
 ) -> list[bpy.types.Object]:
     """Build the navy top, grey shorts, socks, slippers, and understated seams."""
+
+    if pose not in {"neutral_standing", "mirror_selfie"}:
+        raise ValueError(f"Unsupported outfit presentation pose: {pose}")
 
     objects: list[bpy.types.Object] = []
 
@@ -210,13 +214,25 @@ def build_outfit(
         )
         objects.append(hem)
 
-        sock = create_sweep(
-            f"Outfit_AnkleSock_{label}",
-            [
+        is_lifted_leg = pose == "mirror_selfie" and side > 0
+        if is_lifted_leg:
+            sock_controls = [
+                (-0.045, -0.205, 1.255, 0.122, 0.126),
+                (-0.045, -0.205, 1.155, 0.122, 0.125),
+                (-0.045, -0.205, 1.045, 0.112, 0.115),
+            ]
+            slipper_x, slipper_y, slipper_z = -0.085, -0.385, 0.995
+        else:
+            sock_controls = [
                 (side * 0.205, -0.005, 0.43, 0.122, 0.126),
                 (side * 0.205, -0.005, 0.30, 0.122, 0.125),
                 (side * 0.205, -0.005, 0.16, 0.112, 0.115),
-            ],
+            ]
+            slipper_x, slipper_y, slipper_z = side * 0.205, -0.105, 0.095
+
+        sock = create_sweep(
+            f"Outfit_AnkleSock_{label}",
+            sock_controls,
             socks,
             collection,
             radial_segments=28,
@@ -227,7 +243,7 @@ def build_outfit(
 
         sole_obj = create_ellipsoid(
             f"Outfit_SlipperSole_{label}",
-            (side * 0.205, -0.105, 0.095),
+            (slipper_x, slipper_y, slipper_z - 0.080),
             (0.155, 0.315, 0.050),
             sole,
             collection,
@@ -237,7 +253,7 @@ def build_outfit(
         )
         upper_obj = create_ellipsoid(
             f"Outfit_SlipperUpper_{label}",
-            (side * 0.205, -0.095, 0.175),
+            (slipper_x, slipper_y + 0.010, slipper_z),
             (0.145, 0.270, 0.105),
             slippers,
             collection,
