@@ -15,6 +15,7 @@ from engine.core.paths import find_project_root
 ROOT = Path(__file__).resolve().parents[1]
 PROTOTYPE_CONFIG = ROOT / "characters" / "prototype_001" / "character.json"
 BUILDER_SCRIPT = ROOT / "engine" / "blender" / "character_builder.py"
+CLI_SCRIPT = ROOT / "scripts" / "build_character.py"
 
 
 def _prototype_payload() -> dict:
@@ -106,6 +107,11 @@ def test_project_root_can_be_discovered_from_nested_file() -> None:
 def test_blender_builder_is_valid_python_without_importing_blender() -> None:
     source = BUILDER_SCRIPT.read_text(encoding="utf-8")
     ast.parse(source, filename=str(BUILDER_SCRIPT))
+
+
+def test_blender_cli_entrypoint_is_valid_python() -> None:
+    source = CLI_SCRIPT.read_text(encoding="utf-8")
+    ast.parse(source, filename=str(CLI_SCRIPT))
 
 
 def test_pure_python_core_does_not_import_bpy() -> None:
