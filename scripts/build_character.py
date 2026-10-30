@@ -1,0 +1,69 @@
+"""Blender CLI entry point for building a Prototype 001 character blockout."""
+
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+
+def _arguments() -> argparse.Namespace:
+    blender_args = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=PROJECT_ROOT / "characters" / "prototype_001" / "character.json",
+        help="Path to a versioned character JSON specification.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=PROJECT_ROOT / "outputs" / "prototype_001",
+        help="Directory for the .blend file and preview render.",
+    )
+    parser.add_argument(
+        "--skip-render",
+        action="store_true",
+        help="Build and save the Blender scene without rendering a PNG.",
+    )
+    parser.add_argument(
+        "--skip-blend-save",
+        action="store_true",
+        help="Do not save a .blend project file.",
+    )
+    return parser.parse_args(blender_args)
+
+
+def main() -> int:
+    from engine.core.config import load_character_config
+
+    args = _arguments()
+    config = load_character_config(args.config)
+
+    try:
+        from engine.blender.character_builder import build_character
+    except ImportError as exc:
+        raise SystemExit(
+            "This script must run inside Blender's bundled Python runtime. "
+            "Use: blender --background --python scripts/build_character.py -- [options]"
+        ) from exc
+
+    result = build_character(
+        config,
+        args.output_dir,
+        render_preview=not args.skip_render,
+        save_blend=not args.skip_blend_save,
+    )
+    print("Illumination Engine character build completed:")
+    for key, value in result.items():
+        print(f"  {key}: {value}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

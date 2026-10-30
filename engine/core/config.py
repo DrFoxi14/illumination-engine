@@ -1,8 +1,4 @@
-"""Validated, Blender-independent character configuration.
-
-This module deliberately has no bpy dependency so configuration and validation can
-run in ordinary Python, including CI environments without Blender installed.
-"""
+"""Versioned, Blender-independent character configuration."""
 
 from __future__ import annotations
 
@@ -19,9 +15,12 @@ class ConfigError(ValueError):
     """Raised when a character configuration is malformed or unsupported."""
 
 
+_HEX_COLOR = re.compile(r"^#[0-9A-Fa-f]{6}$")
+
+
 @dataclass(frozen=True, slots=True)
 class ProportionConfig:
-    """High-level proportion controls for the procedural character blockout."""
+    """High-level proportion controls interpreted by the geometry builder."""
 
     head_to_body_ratio: float
     eye_scale: float
@@ -30,18 +29,16 @@ class ProportionConfig:
     def from_mapping(cls, value: Mapping[str, Any]) -> ProportionConfig:
         ratio = _number(value, "head_to_body_ratio")
         eye_scale = _number(value, "eye_scale")
-
         if not 0.2 <= ratio <= 0.8:
             raise ConfigError("proportions.head_to_body_ratio must be between 0.2 and 0.8")
         if not 0.5 <= eye_scale <= 2.5:
             raise ConfigError("proportions.eye_scale must be between 0.5 and 2.5")
-
         return cls(head_to_body_ratio=ratio, eye_scale=eye_scale)
 
 
 @dataclass(frozen=True, slots=True)
 class FeatureConfig:
-    """Feature switches consumed by later character-generation milestones."""
+    """Requested subsystems; not all are implemented in the current milestone."""
 
     facial_rig: bool
     body_rig: bool
@@ -57,6 +54,78 @@ class FeatureConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class HairConfig:
+    """Stylized hair appearance."""
+
+    style: str
+    part: str
+    color: str
+    highlight_color: str
+
+    @classmethod
+    def from_mapping(cls, value: Mapping[str, Any]) -> HairConfig:
+        style = _choice(value, "style", {"long_straight"})
+        part = _choice(value, "part", {"left", "right", "center"})
+        return cls(
+            style=style,
+            part=part,
+            color=_hex_color(value, "color"),
+            highlight_color=_hex_color(value, "highlight_color"),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class FaceConfig:
+    """Face palette. Iris color is a design placeholder when not visible in a reference."""
+
+    skin_color: str
+    iris_color: str
+
+    @classmethod
+    def from_mapping(cls, value: Mapping[str, Any]) -> FaceConfig:
+        return cls(
+            skin_color=_hex_color(value, "skin_color"),
+            iris_color=_hex_color(value, "iris_color"),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class OutfitConfig:
+    """Color and garment controls for the initial character blockout."""
+
+    top_color: str
+    shorts_color: str
+    socks_color: str
+    slipper_color: str
+    sole_color: str
+
+    @classmethod
+    def from_mapping(cls, value: Mapping[str, Any]) -> OutfitConfig:
+        return cls(
+            top_color=_hex_color(value, "top_color"),
+            shorts_color=_hex_color(value, "shorts_color"),
+            socks_color=_hex_color(value, "socks_color"),
+            slipper_color=_hex_color(value, "slipper_color"),
+            sole_color=_hex_color(value, "sole_color"),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class PoseConfig:
+    """Initial presentation pose and optional hand prop."""
+
+    style: str
+    phone_visible: bool
+
+    @classmethod
+    def from_mapping(cls, value: Mapping[str, Any]) -> PoseConfig:
+        return cls(
+            style=_choice(value, "style", {"mirror_selfie", "neutral_standing"}),
+            phone_visible=_boolean(value, "phone_visible"),
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class CharacterConfig:
     """Immutable and validated description of one procedural character."""
 
@@ -65,7 +134,11 @@ class CharacterConfig:
     visual_style: str
     proportions: ProportionConfig
     features: FeatureConfig
-    schema_version: int = 1
+    hair: HairConfig
+    face: FaceConfig
+    outfit: OutfitConfig
+    pose: PoseConfig
+    schema_version: int = 2
 
     @classmethod
     def from_mapping(cls, value: Mapping[str, Any]) -> CharacterConfig:
@@ -73,7 +146,7 @@ class CharacterConfig:
         if (
             isinstance(schema_version, bool)
             or not isinstance(schema_version, int)
-            or schema_version != 1
+            or schema_version != 2
         ):
             raise ConfigError(f"Unsupported character config schema_version: {schema_version!r}")
 
@@ -94,20 +167,18 @@ class CharacterConfig:
 
         visual_style = value.get("visual_style")
         if visual_style != "stylized_cinematic":
-            raise ConfigError(
-                "visual_style must currently be 'stylized_cinematic'; "
-                "art direction presets are introduced incrementally"
-            )
-
-        proportions = _mapping(value, "proportions")
-        features = _mapping(value, "features")
+            raise ConfigError("visual_style must be 'stylized_cinematic'")
 
         return cls(
             character_id=character_id,
             display_name=display_name.strip(),
             visual_style=visual_style,
-            proportions=ProportionConfig.from_mapping(proportions),
-            features=FeatureConfig.from_mapping(features),
+            proportions=ProportionConfig.from_mapping(_mapping(value, "proportions")),
+            features=FeatureConfig.from_mapping(_mapping(value, "features")),
+            hair=HairConfig.from_mapping(_mapping(value, "hair")),
+            face=FaceConfig.from_mapping(_mapping(value, "face")),
+            outfit=OutfitConfig.from_mapping(_mapping(value, "outfit")),
+            pose=PoseConfig.from_mapping(_mapping(value, "pose")),
             schema_version=schema_version,
         )
 
@@ -128,7 +199,6 @@ def load_character_config(path: str | Path) -> CharacterConfig:
 
     if not isinstance(raw, dict):
         raise ConfigError("Character config root must be a JSON object")
-
     return CharacterConfig.from_mapping(raw)
 
 
@@ -154,3 +224,18 @@ def _boolean(parent: Mapping[str, Any], key: str) -> bool:
     if not isinstance(value, bool):
         raise ConfigError(f"{key} must be a boolean")
     return value
+
+
+def _choice(parent: Mapping[str, Any], key: str, allowed: set[str]) -> str:
+    value = parent.get(key)
+    if not isinstance(value, str) or value not in allowed:
+        choices = ", ".join(sorted(allowed))
+        raise ConfigError(f"{key} must be one of: {choices}")
+    return value
+
+
+def _hex_color(parent: Mapping[str, Any], key: str) -> str:
+    value = parent.get(key)
+    if not isinstance(value, str) or not _HEX_COLOR.fullmatch(value):
+        raise ConfigError(f"{key} must be a six-digit hex color such as '#AABBCC'")
+    return value.upper()
