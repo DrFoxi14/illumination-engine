@@ -108,6 +108,13 @@ def _render_silhouette_views(
     original_y = scene.render.resolution_y
     original_percentage = scene.render.resolution_percentage
     shading = scene.display.shading
+    floor = bpy.data.objects.get("Studio_Floor")
+    floor_was_hidden = floor.hide_render if floor is not None else False
+    if floor is not None:
+        floor.hide_render = True
+    world_color = tuple(scene.world.color) if scene.world is not None else None
+    if scene.world is not None:
+        scene.world.color = (0.94, 0.95, 0.98)
     saved_shading = {
         "light": shading.light,
         "color_type": shading.color_type,
@@ -151,6 +158,10 @@ def _render_silhouette_views(
     shading.background_color = saved_shading["background_color"]
     shading.show_shadows = saved_shading["show_shadows"]
     shading.show_cavity = saved_shading["show_cavity"]
+    if floor is not None:
+        floor.hide_render = floor_was_hidden
+    if scene.world is not None and world_color is not None:
+        scene.world.color = world_color
     scene.render.engine = original_engine
     scene.render.resolution_x = original_x
     scene.render.resolution_y = original_y
@@ -252,6 +263,7 @@ def build_character(
         eye_white=palette["eye_white"],
         dark=palette["dark"],
         lip=palette["lip"],
+        eye_scale=config.proportions.eye_scale,
     )
     hair_objects = build_hair(
         hair_collection,
