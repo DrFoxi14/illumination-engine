@@ -66,7 +66,7 @@ Expected outputs:
 - `outputs/validation/silhouette_side.png`
 - `outputs/validation/silhouette_three_quarter.png`
 
-The full local preview additionally writes `prototype_001_preview.png`.
+The full local EEVEE preview additionally writes `prototype_001_preview.png`. For a headless shaded preview, use `--color-only --preview-engine cycles --preview-samples 16`; this selects CPU Cycles and writes the same preview filename.
 
 ## Generation modules
 
@@ -90,7 +90,7 @@ The web viewer will be downstream from future Blender exports. Do not implement 
 
 The regular Python workflow runs linting, unit tests, and source compilation. A separate Blender workflow downloads the official Blender 4.5.15 LTS Linux archive, verifies its published SHA-256 checksum, builds the character headlessly, runs mesh integrity checks, and produces three Workbench silhouette renders. The Blender project, validation report, and images are uploaded as a short-lived workflow artifact.
 
-That headless workflow validates actual scene construction and CPU rendering. It does not certify artistic quality or replace a final local EEVEE/Cycles look-development review.
+That headless workflow validates actual scene construction and Workbench silhouette rendering, and attempts a low-sample CPU Cycles color preview as a best-effort step. It does not certify artistic quality or replace a final local EEVEE/Cycles look-development review.
 
 ## Generated files
 
