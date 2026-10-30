@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Local environments and editor files
+.env
+.env.*
+!.env.example
+.DS_Store
+.idea/
+.vscode/
+
+# Blender backup files (keep intentional .blend source assets trackable)
+*.blend1
+*.blend2
+*.blend@
+*.pyc
+
+# Generated output: do not commit renders or build artifacts
+outputs/
+renders/
+artifacts/
+build/
+dist/
+
+# Web dependencies (viewer is introduced in a later milestone)
+node_modules/

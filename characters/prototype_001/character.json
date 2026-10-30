@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "character_id": "prototype_001",
+  "display_name": "Prototype One",
+  "visual_style": "stylized_cinematic",
+  "proportions": {
+    "head_to_body_ratio": 0.42,
+    "eye_scale": 1.15
+  },
+  "features": {
+    "facial_rig": true,
+    "body_rig": true,
+    "grooming": true
+  }
+}
