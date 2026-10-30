@@ -141,7 +141,7 @@ def _mapping(parent: Mapping[str, Any], key: str) -> Mapping[str, Any]:
 
 def _number(parent: Mapping[str, Any], key: str) -> float:
     value = parent.get(key)
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
+    if isinstance(value, bool) or not isinstance(value, int | float):
         raise ConfigError(f"{key} must be a number")
     result = float(value)
     if not math.isfinite(result):
