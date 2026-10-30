@@ -9,9 +9,10 @@ from __future__ import annotations
 import json
 import math
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 
 class ConfigError(ValueError):
@@ -69,7 +70,11 @@ class CharacterConfig:
     @classmethod
     def from_mapping(cls, value: Mapping[str, Any]) -> CharacterConfig:
         schema_version = value.get("schema_version")
-        if schema_version != 1:
+        if (
+            isinstance(schema_version, bool)
+            or not isinstance(schema_version, int)
+            or schema_version != 1
+        ):
             raise ConfigError(f"Unsupported character config schema_version: {schema_version!r}")
 
         character_id = value.get("character_id")
