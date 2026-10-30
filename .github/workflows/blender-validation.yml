@@ -51,6 +51,24 @@ jobs:
           test -x "${install_dir}/blender"
           echo "BLENDER_BIN=${install_dir}/blender" >> "${GITHUB_ENV}"
 
+      - name: Install headless Blender runtime libraries
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            libegl1 \
+            libgl1 \
+            libxkbcommon0 \
+            libxi6 \
+            libxrender1 \
+            libxfixes3 \
+            libxrandr2 \
+            libxinerama1 \
+            libxcursor1 \
+            libsm6 \
+            libice6 \
+            libdbus-1-3
+
       - name: Verify Blender runtime
         shell: bash
         run: |
