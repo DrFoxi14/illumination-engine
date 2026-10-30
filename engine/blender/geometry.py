@@ -13,7 +13,6 @@ import bmesh
 import bpy
 from mathutils import Vector
 
-
 Profile = tuple[float, float, float, float, float]
 SweepPoint = tuple[float, float, float, float, float]
 
