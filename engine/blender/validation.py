@@ -7,7 +7,6 @@ import bpy
 import math
 from typing import Any
 
-
 REQUIRED_OBJECTS = (
     "Character_Skin",
     "Face_Eyeball_L",
