@@ -8,7 +8,6 @@ version = "0.1.0"
 description = "A procedural 3D character framework with a Blender core and Three.js viewer."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "UNLICENSED" }
 authors = [
   { name = "Illumination Engine Contributors" }
 ]
@@ -41,4 +40,4 @@ line-length = 100
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP"]
+select = ["E4", "E7", "E9", "F", "I", "UP"]
