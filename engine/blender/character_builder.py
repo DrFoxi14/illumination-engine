@@ -363,6 +363,7 @@ def build_character(
         socks=palette["socks"],
         slippers=palette["slippers"],
         sole=palette["sole"],
+        pose=config.pose.style,
     )
 
     props_collection = _new_collection("Handheld_Props")
