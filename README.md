@@ -11,6 +11,7 @@ An original procedural 3D character framework. Blender is the authoring and rend
 - **Blender** owns editable geometry, materials, rigging, simulation, scene assembly, and final rendering.
 - **Python** builds custom parametric surfaces and orchestrates character creation through Blender's `bpy` API.
 - **Character geometry** is generated from lofts, parallel-transport sweeps, facial components, and sculptural hair clumps.
+- **Hair silhouette** keeps the long mass behind the shoulders, with shorter face-framing locks so the outfit remains readable from the front.
 - **Unified skin** joins the custom head, torso, neck, limbs, hands, and feet, then voxel-remeshes them into one watertight anatomical surface.
 - **glTF/GLB** will be the interchange format for supported meshes, materials, skinning, morph targets, and animation clips.
 - **Three.js / React Three Fiber** will be a downstream viewer, not a second authoring engine.
@@ -86,6 +87,18 @@ blender --background --factory-startup --python-exit-code 1 \
   --silhouette-only
 ```
 
+
+For a shaded CPU Cycles color preview:
+
+```bash
+blender --background --factory-startup --python-exit-code 1 \\
+  --python scripts/build_character.py -- \\
+  --output-dir outputs/color \\
+  --color-only \\
+  --preview-engine cycles \\
+  --preview-samples 16
+```
+
 To construct and validate the scene without rendering:
 
 ```bash
@@ -103,7 +116,7 @@ No Quaternius, MakeHuman, MPFB, downloaded character mesh, or third-party charac
 
 P1 is a custom procedural blockout, not a finished feature-film character. The anatomical parts are now joined into one watertight remeshed skin surface, but this is not final animation topology. The face does not yet have production edge flow around the eyelids and mouth. Facial and body rigs, shape keys, skin weights, cloth simulation, advanced groom simulation, selfie posing, GLB export, and the web viewer remain later milestones.
 
-The Blender integration workflow verifies the generated scene's required objects and closed mesh invariants, then produces CPU-only silhouette renders. This proves the scene can be constructed and rendered in Blender; it does not certify artistic quality. P1 still requires visual review and refinement of the face, silhouette, hair, clothing, and intersections.
+The Blender integration workflow verifies the generated scene's required objects and closed mesh invariants, then produces CPU-only silhouette renders. It also attempts a low-sample Cycles CPU color preview as a best-effort visual artifact. This proves the scene can be constructed and rendered in Blender; it does not certify artistic quality. P1 still requires visual review and refinement of the face, silhouette, hair, clothing, and intersections.
 
 ## Project principles
 
