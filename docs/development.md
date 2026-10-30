@@ -3,8 +3,8 @@
 ## Requirements
 
 - Python 3.10 or newer for the pure-Python package and CI.
+- Blender 4.2 or newer for the current EEVEE Next preview builder.
 - Git.
-- Blender installed separately for future geometry and scene-generation milestones.
 - Node.js will be required when the Three.js viewer is introduced.
 
 Blender's `bpy` module is supplied by Blender's own Python runtime. Do not add a normal `pip install bpy` step to the base developer setup.
@@ -25,24 +25,39 @@ Run checks:
 ```bash
 ruff check .
 pytest -q
-python -m compileall -q engine tests
+python -m compileall -q engine tests scripts
 ```
 
-## Running Blender later
+## Build Prototype 001
 
-When Blender automation is introduced, use Blender in background mode with a script entry point. The exact executable path is machine-specific; it should be configured locally, not committed.
-
-Example pattern (after the corresponding script exists):
+Run the character builder inside Blender:
 
 ```bash
 blender --background --factory-startup --python scripts/build_character.py
 ```
 
-The command above is a future usage pattern. The build script is not part of P0 yet.
+The default configuration is `characters/prototype_001/character.json`. The default output directory is `outputs/prototype_001/`.
+
+Useful options:
+
+```bash
+blender --background --factory-startup --python scripts/build_character.py -- --skip-render
+blender --background --factory-startup --python scripts/build_character.py -- \
+  --config characters/prototype_001/character.json \
+  --output-dir outputs/prototype_001
+```
+
+The builder creates a static geometry blockout, a simple studio scene, a saved `.blend` source, and optionally a PNG preview. It does not create a production rig or character animation yet.
+
+## Runtime separation
+
+The pure-Python configuration package must not import `bpy`. Blender-specific modules are imported only inside Blender's bundled Python runtime.
+
+The web viewer is downstream from Blender exports. Do not implement an independent second character model in Three.js.
 
 ## CI policy
 
-GitHub Actions runs pure-Python linting, compilation, and unit tests. Blender integration tests will be added only after the Blender runtime adapter exists. GPU rendering and artistic visual review remain local or on a dedicated render runner.
+GitHub Actions runs pure-Python linting, compilation, and unit tests. The current workflow does not install Blender and does not run 3D renders. Blender integration tests and deterministic scene inspection will be added when a suitable runtime is defined. Artistic visual review remains a separate gate.
 
 ## Generated files
 
