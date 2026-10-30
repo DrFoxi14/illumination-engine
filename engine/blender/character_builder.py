@@ -112,9 +112,9 @@ def _create_stage(
     scene.camera = camera
 
     light_specs = [
-        ("Key_Softbox", (-4.4, -6.0, 7.2), 1250.0, 5.0),
+        ("Key_Softbox", (-4.4, -6.0, 7.2), 1150.0, 5.0),
         ("Fill_Softbox", (4.8, -4.0, 4.5), 520.0, 4.5),
-        ("Hair_Rim", (0.0, 3.0, 6.5), 1450.0, 3.0),
+        ("Hair_Rim", (0.0, 3.0, 6.5), 850.0, 3.0),
         ("Eye_Catchlight", (0.0, -6.0, 3.8), 95.0, 1.4),
     ]
     for name, location, energy, size in light_specs:
@@ -247,14 +247,14 @@ def _create_material_palette(config: CharacterConfig) -> dict[str, bpy.types.Mat
         "hair": create_material(
             "Hair_Warm_Base",
             config.hair.color,
-            roughness=0.54,
-            coat=0.08,
+            roughness=0.68,
+            coat=0.02,
         ),
         "hair_highlight": create_material(
             "Hair_Golden_Highlight",
             config.hair.highlight_color,
-            roughness=0.52,
-            coat=0.08,
+            roughness=0.64,
+            coat=0.02,
         ),
         "top": create_material(
             "Fabric_Navy_Blue",
