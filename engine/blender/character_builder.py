@@ -239,9 +239,16 @@ def build_character(
     *,
     render_preview: bool = True,
     render_color_preview: bool = True,
+    render_engine: str = "BLENDER_EEVEE_NEXT",
+    preview_samples: int = 16,
     save_blend: bool = True,
 ) -> dict[str, Any]:
     """Generate Prototype 001 from custom parametric geometry."""
+
+    if render_engine not in {"BLENDER_EEVEE_NEXT", "CYCLES"}:
+        raise ValueError(f"Unsupported preview render engine: {render_engine}")
+    if not 1 <= preview_samples <= 128:
+        raise ValueError("preview_samples must be between 1 and 128")
 
     output_path = Path(output_dir).expanduser().resolve()
     output_path.mkdir(parents=True, exist_ok=True)
@@ -310,10 +317,14 @@ def build_character(
         camera.location = (5.6, -10.8, 4.1)
         _look_at(camera, target)
         scene = bpy.context.scene
-        scene.render.engine = "BLENDER_EEVEE_NEXT"
-        scene.render.resolution_x = 1100
-        scene.render.resolution_y = 1400
+        scene.render.engine = render_engine
+        scene.render.resolution_x = 960 if render_engine == "CYCLES" else 1100
+        scene.render.resolution_y = 1200 if render_engine == "CYCLES" else 1400
         scene.render.resolution_percentage = 100
+        if render_engine == "CYCLES":
+            scene.cycles.device = "CPU"
+            scene.cycles.samples = preview_samples
+            scene.cycles.use_denoising = True
         scene.render.filepath = str(preview_path)
         bpy.ops.render.render(write_still=True)
 
@@ -337,6 +348,8 @@ def build_character(
         "body_rig_status": "planned_not_implemented",
         "blend_path": str(blend_path) if save_blend else None,
         "preview_path": str(preview_path) if render_color_preview else None,
+        "preview_render_engine": render_engine if render_color_preview else None,
+        "preview_samples": preview_samples if render_color_preview else None,
         "silhouette_renders": silhouette_paths,
         "validation_report_path": str(validation_path),
         "validation": validation_report,
