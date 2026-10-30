@@ -42,7 +42,8 @@ def test_loads_prototype_character_config() -> None:
     assert config.proportions.eye_scale == pytest.approx(1.22)
     assert config.hair.style == "long_straight"
     assert config.hair.part == "left"
-    assert config.hair.color == "#B98952"
+    assert config.hair.color == "#A97842"
+    assert config.hair.highlight_color == "#D3AC77"
     assert config.pose.style == "mirror_selfie"
     assert config.pose.phone_visible is True
 
