@@ -300,7 +300,7 @@ def build_character(
     validation_report["construction"] = "original_parametric_meshes"
     validation_path = output_path / "validation_report.json"
     validation_path.write_text(
-        json.dumps(validation_report, indent=2) + "\\n",
+        json.dumps(validation_report, indent=2) + "\n",
         encoding="utf-8",
     )
 
