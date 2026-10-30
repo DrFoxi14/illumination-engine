@@ -19,6 +19,7 @@ BLENDER_MODULES = (
     ROOT / "engine" / "blender" / "body_topology.py",
     ROOT / "engine" / "blender" / "character_builder.py",
     ROOT / "engine" / "blender" / "grooming.py",
+    ROOT / "engine" / "blender" / "footwear.py",
     ROOT / "scripts" / "build_character.py",
 )
 
