@@ -15,6 +15,7 @@ def build_face(
     eye_white: bpy.types.Material,
     dark: bpy.types.Material,
     lip: bpy.types.Material,
+    eye_scale: float = 1.0,
 ) -> list[bpy.types.Object]:
     """Build paired eyes with lids, brows, nose, ears, and a restrained smile."""
 
@@ -24,7 +25,7 @@ def build_face(
         socket = create_ellipsoid(
             f"Face_EyeSocket_{label}",
             (side * 0.205, -0.365, 4.765),
-            (0.184, 0.096, 0.205),
+            (0.184 * eye_scale, 0.096, 0.205 * eye_scale),
             skin,
             collection,
             segments=40,
@@ -34,7 +35,7 @@ def build_face(
         eye = create_ellipsoid(
             f"Face_Eyeball_{label}",
             (side * 0.205, -0.427, 4.765),
-            (0.145, 0.103, 0.164),
+            (0.145 * eye_scale, 0.103, 0.164 * eye_scale),
             eye_white,
             collection,
             segments=40,
@@ -44,7 +45,7 @@ def build_face(
         iris_obj = create_ellipsoid(
             f"Face_Iris_{label}",
             (side * 0.190, -0.520, 4.758),
-            (0.067, 0.025, 0.080),
+            (0.067 * eye_scale, 0.025, 0.080 * eye_scale),
             iris,
             collection,
             segments=32,
@@ -54,7 +55,7 @@ def build_face(
         pupil = create_ellipsoid(
             f"Face_Pupil_{label}",
             (side * 0.190, -0.541, 4.758),
-            (0.032, 0.014, 0.049),
+            (0.032 * eye_scale, 0.014, 0.049 * eye_scale),
             dark,
             collection,
             segments=24,
@@ -64,7 +65,7 @@ def build_face(
         sparkle = create_ellipsoid(
             f"Face_EyeCatchlight_{label}",
             (side * 0.165, -0.556, 4.792),
-            (0.020, 0.010, 0.025),
+            (0.020 * eye_scale, 0.010, 0.025 * eye_scale),
             eye_white,
             collection,
             segments=16,
