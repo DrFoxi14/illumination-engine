@@ -33,7 +33,7 @@ jobs:
     timeout-minutes: 20
     env:
       BLENDER_VERSION: "4.5.15"
-      BLENDER_DIR: ${{ github.workspace }}/.blender-4.5.15
+      BLENDER_DIR: .blender-4.5.15
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
