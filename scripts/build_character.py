@@ -1,8 +1,9 @@
-"""Blender CLI entry point for building a Prototype 001 character blockout."""
+"""Blender CLI entry point for building Prototype 001 from a rigged base mesh."""
 
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -21,44 +22,65 @@ def _arguments() -> argparse.Namespace:
         help="Path to a versioned character JSON specification.",
     )
     parser.add_argument(
+        "--base-mesh",
+        type=Path,
+        default=os.environ.get("ILLUMINATION_BASE_MESH"),
+        help=(
+            "Path to the locally downloaded rigged .gltf/.glb humanoid base mesh. "
+            "May also be set through ILLUMINATION_BASE_MESH."
+        ),
+    )
+    parser.add_argument(
+        "--body-object",
+        default=None,
+        help="Optional exact name of the body mesh inside the imported asset.",
+    )
+    parser.add_argument(
+        "--armature-object",
+        default=None,
+        help="Optional exact name of the armature inside the imported asset.",
+    )
+    parser.add_argument(
         "--output-dir",
         type=Path,
         default=PROJECT_ROOT / "outputs" / "prototype_001",
-        help="Directory for the .blend file and preview render.",
+        help="Directory for the .blend file and preview renders.",
     )
     parser.add_argument(
         "--skip-render",
         action="store_true",
-        help="Build and save the Blender scene without rendering a PNG.",
+        help="Build and save the Blender scene without producing PNG renders.",
     )
     parser.add_argument(
         "--skip-blend-save",
         action="store_true",
         help="Do not save a .blend project file.",
     )
-    return parser.parse_args(blender_args)
+    args = parser.parse_args(blender_args)
+    if args.base_mesh is None:
+        parser.error(
+            "Pass --base-mesh PATH or set ILLUMINATION_BASE_MESH. "
+            "Download the Quaternius Universal Base Characters Standard pack first."
+        )
+    return args
 
 
 def main() -> int:
     from engine.core.config import load_character_config
+    from engine.blender.character_builder import build_character
 
     args = _arguments()
     config = load_character_config(args.config)
-
-    try:
-        from engine.blender.character_builder import build_character
-    except ImportError as exc:
-        raise SystemExit(
-            "This script must run inside Blender's bundled Python runtime. "
-            "Use: blender --background --python scripts/build_character.py -- [options]"
-        ) from exc
-
     result = build_character(
         config,
+        args.base_mesh,
         args.output_dir,
+        body_object_name=args.body_object,
+        armature_object_name=args.armature_object,
         render_preview=not args.skip_render,
         save_blend=not args.skip_blend_save,
     )
+
     print("Illumination Engine character build completed:")
     for key, value in result.items():
         print(f"  {key}: {value}")
