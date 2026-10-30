@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import math
-from typing import Any
-
 import bmesh
 import bpy
+import math
+from typing import Any
 
 
 REQUIRED_OBJECTS = (
