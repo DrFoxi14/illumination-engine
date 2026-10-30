@@ -75,7 +75,7 @@ def main() -> int:
         render_preview=not args.skip_render and not args.color_only,
         render_color_preview=not args.skip_render and not args.silhouette_only,
         render_engine=(
-            "CYCLES" if args.preview_engine == "cycles" else "BLENDER_EEVEE_NEXT"
+            "CYCLES" if args.preview_engine == "cycles" else "EEVEE"
         ),
         preview_samples=args.preview_samples,
         save_blend=not args.skip_blend_save,
