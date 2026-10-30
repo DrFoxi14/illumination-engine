@@ -6,12 +6,11 @@ and footwear are generated from editable parametric surfaces in Blender.
 
 from __future__ import annotations
 
+import bpy
 import json
+from mathutils import Vector
 from pathlib import Path
 from typing import Any
-
-import bpy
-from mathutils import Vector
 
 from engine.blender.body import build_body
 from engine.blender.face import build_face
