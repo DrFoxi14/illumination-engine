@@ -7,7 +7,7 @@ Prototype 001 is an original stylized cinematic character informed by broad, non
 - Dark navy short-sleeved cropped top.
 - Light-grey shorts.
 - Light socks and soft house slippers.
-- A relaxed standing pose for the first model review.
+- A static mirror-selfie presentation pose with a handheld phone prop.
 
 The face is original because the reference image obscures much of it. The design uses an expressive, friendly face, but it does not attempt an exact facial likeness.
 
@@ -24,9 +24,9 @@ The initial generator consists of:
 - A lofted torso with a controlled waist-to-shoulder profile.
 - Swept limbs, hands, fingers, and feet with tapered cross-sections.
 - A unified skin surface created by joining and voxel-remeshing the anatomical parts. This removes internal intersections and produces one closed anatomical shell for later sculpting and retopology.
-- Separate facial forms for eye sockets, eyeballs, irises, pupils, eye catchlights, eyelid arcs, brows, nose, lips, mouth opening, teeth, and ears.
-- A scalp cap plus tapered volumetric hair clumps: shorter face-framing locks, long side panels positioned behind the shoulders, and broad back clumps. The intent is to keep the outfit readable from the front while preserving long hair in side and rear views.
-- Lofted clothing volumes for the navy top and grey shorts, swept sleeves and socks, and soft footwear forms.
+- Separate facial forms for inset-style eyeballs, irises, pupils, catchlights, upper/lower eyelid arcs, subtle eyelid creases, brows, nose, lips, mouth opening, teeth, and ears. The full raised socket ellipsoids were removed because they read as concentric rings in the first render.
+- A scalp cap plus layered, flattened volumetric hair clumps: multiple swept fringe locks, short face-framing locks, and varied long side/back clumps positioned behind the shoulder line.
+- Lofted clothing volumes for the navy top and grey shorts, swept sleeves and socks, soft footwear forms, and understated neckline, sleeve, waistband, fly, and hem seam details.
 - A studio camera, area lights, a color preview, and black-on-light silhouette renders from three angles.
 - Structural validation of required parts, finite mesh coordinates, face areas, loose geometry, and manifold edges.
 
@@ -35,12 +35,12 @@ The initial generator consists of:
 P1 is a procedural blockout and is not accepted as a finished character. In particular:
 - The unified skin mesh is suitable for further sculpting but is not final animation retopology.
 - The face does not yet have production-quality edge flow around eyelids and mouth.
-- The eyes and mouth are separate meshes, not a finished facial deformation system.
+- The eyes and mouth are separate meshes, not a finished facial deformation system. The eyelid arcs improve the static expression but do not provide blinking or shape-key control.
 - The hair is a static clump-based sculptural blockout; the new placement is a silhouette correction, not strand-level groom simulation.
 - Hair clumps are static mesh forms, not individual simulated strands.
-- Clothing is a shape blockout; folds, seams, fabric tension, and cloth simulation are not implemented.
+- Clothing remains a shape blockout; the new seam curves are visual finish details, not a fabric simulation or realistic wrinkle system.
 - There is no facial rig, body armature, skin weighting, corrective shapes, or animation yet.
-- The mirror-selfie pose and phone prop are deferred until the body rig and pose controls exist.
+- The mirror-selfie presentation is a static procedural pose. The arm is posed in the geometry builder; there is no armature, pose-control UI, or animation yet.
 
 ## Configuration
 
@@ -53,18 +53,18 @@ Schema version 2 currently defines:
 - Hair style, part direction, base color, and highlight color.
 - Skin and iris palette.
 - Clothing and footwear colors.
-- A neutral standing base-pose target, with selfie presentation deferred.
+- A neutral or mirror-selfie presentation pose target and optional phone visibility.
 
 These fields control the current generator where implemented. Feature flags are design intent, not a claim that those future systems already exist.
 
 ## Next milestones
 
-1. Review and refine the generated silhouette and head/body proportions.
-2. Improve eyelid, lip, and facial topology.
+1. Review the new color render and silhouette from front, side, and three-quarter views.
+2. Refine topology and smooth intersections where visual review identifies them.
 3. Add facial shape keys and a composable expression controller.
 4. Build a body armature, skin weights, and corrective deformations.
-5. Refine hair clumps and materials; test secondary movement.
-6. Add posing, the reference-inspired selfie composition, and animation.
+5. Refine hair materials and secondary motion.
+6. Turn the static selfie pose into animator-friendly controls and animation.
 7. Validate GLB export and implement the Three.js viewer.
 
 ## Acceptance philosophy
