@@ -11,7 +11,6 @@ import pytest
 from engine.core.config import CharacterConfig, ConfigError, load_character_config
 from engine.core.paths import find_project_root
 
-
 ROOT = Path(__file__).resolve().parents[1]
 PROTOTYPE_CONFIG = ROOT / "characters" / "prototype_001" / "character.json"
 BUILDER_SCRIPT = ROOT / "engine" / "blender" / "character_builder.py"
