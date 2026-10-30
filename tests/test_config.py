@@ -33,6 +33,14 @@ def test_rejects_unsupported_schema_version() -> None:
         CharacterConfig.from_mapping(payload)
 
 
+def test_rejects_boolean_schema_version() -> None:
+    payload = json.loads(PROTOTYPE_CONFIG.read_text(encoding="utf-8"))
+    payload["schema_version"] = True
+
+    with pytest.raises(ConfigError, match="Unsupported"):
+        CharacterConfig.from_mapping(payload)
+
+
 def test_rejects_out_of_range_proportions() -> None:
     payload = json.loads(PROTOTYPE_CONFIG.read_text(encoding="utf-8"))
     payload["proportions"]["eye_scale"] = 9.0
