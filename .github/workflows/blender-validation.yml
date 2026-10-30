@@ -33,7 +33,7 @@ jobs:
     timeout-minutes: 20
     env:
       BLENDER_VERSION: "4.5.15"
-      BLENDER_DIR: ${{ runner.temp }}/blender-4.5.15
+      BLENDER_DIR: ${{ github.workspace }}/.blender-4.5.15
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -42,7 +42,7 @@ jobs:
         id: blender-cache
         uses: actions/cache@v4
         with:
-          path: ${{ runner.temp }}/blender-4.5.15
+          path: .blender-4.5.15
           key: blender-linux-x64-4.5.15
 
       - name: Download and verify official Blender LTS
