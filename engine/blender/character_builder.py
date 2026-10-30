@@ -384,14 +384,11 @@ def _build_body(
 
 def _build_studio(collection: bpy.types.Collection, materials: dict[str, bpy.types.Material]) -> None:
     scene = bpy.context.scene
-    floor = _ellipsoid(
-        "Studio_Floor_Helper",
-        (0.0, 0.0, -0.13),
-        (200.0, 200.0, 0.12),
-        materials["floor"],
-        collection,
-    )
+    bpy.ops.mesh.primitive_plane_add(size=200.0, location=(0.0, 0.0, -0.01))
+    floor = bpy.context.object
     floor.name = "Studio_Floor"
+    floor.data.materials.append(materials["floor"])
+    _move_to_collection(floor, collection)
 
     bpy.ops.object.camera_add(location=(6.3, -11.5, 5.3))
     camera = bpy.context.object
