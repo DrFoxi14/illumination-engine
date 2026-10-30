@@ -123,7 +123,7 @@ def build_body(
             )
             palm = create_ellipsoid(
                 f"Body_Palm_{label}",
-                (side * 0.615, -0.395, 4.475),
+                (side * 0.615, -0.455, 4.490),
                 (0.104, 0.070, 0.122),
                 skin,
                 collection,
@@ -141,9 +141,9 @@ def build_body(
                     [
                         # The first control sits well inside the palm volume so voxel
                         # remeshing fuses each finger root into the hand reliably.
-                        (side * (0.615 + offset * 0.015), -0.390, 4.475 + offset * 0.025, 0.025, 0.023),
-                        (side * (0.680 + offset * 0.022), -0.475, 4.485 + offset * 0.040, 0.018, 0.017),
-                        (side * (0.685 + offset * 0.020), -0.486, 4.455 + offset * 0.040, 0.009, 0.010),
+                        (side * (0.615 + offset * 0.015), -0.450, 4.475 + offset * 0.018, 0.025, 0.023),
+                        (side * (0.680 + offset * 0.022), -0.585, 4.485 + offset * 0.030, 0.018, 0.017),
+                        (side * (0.685 + offset * 0.020), -0.600, 4.455 + offset * 0.030, 0.009, 0.010),
                     ],
                     skin,
                     collection,
@@ -155,9 +155,9 @@ def build_body(
             thumb = create_sweep(
                 f"Body_Thumb_{label}",
                 [
-                    (side * 0.555, -0.435, 4.465, 0.032, 0.030),
-                    (side * 0.535, -0.475, 4.500, 0.025, 0.024),
-                    (side * 0.545, -0.490, 4.535, 0.012, 0.013),
+                    (side * 0.555, -0.510, 4.465, 0.032, 0.030),
+                    (side * 0.535, -0.575, 4.500, 0.025, 0.024),
+                    (side * 0.545, -0.590, 4.535, 0.012, 0.013),
                 ],
                 skin,
                 collection,
