@@ -42,7 +42,8 @@ def test_loads_prototype_character_config() -> None:
     assert config.proportions.eye_scale == pytest.approx(1.22)
     assert config.hair.style == "long_straight"
     assert config.hair.part == "left"
-    assert config.hair.color == "#B98952"
+    assert config.hair.color == "#A97842"
+    assert config.hair.highlight_color == "#D3AC77"
     assert config.pose.style == "mirror_selfie"
     assert config.pose.phone_visible is True
 
@@ -139,9 +140,13 @@ def test_character_build_has_cpu_validation_render_mode() -> None:
     assert "unify_skin_surface(" in builder_source
     assert "pose=config.pose.style" in builder_source
     assert "_build_phone(" in builder_source
+    assert "location=(0.635, -0.535, 4.625)" in builder_source
+    assert 'background.inputs["Strength"].default_value = 0.30' in builder_source
     body_source = (ROOT / "engine" / "blender" / "body.py").read_text(encoding="utf-8")
     outfit_source = (ROOT / "engine" / "blender" / "outfit.py").read_text(encoding="utf-8")
     assert "is_lifted_leg = pose == \"mirror_selfie\" and side > 0" in body_source
+    assert "-0.585, 4.485" in body_source
+    assert "-0.600, 4.455" in body_source
     assert "is_lifted_leg = pose == \"mirror_selfie\" and side > 0" in outfit_source
     assert "Outfit_SlipperSole_" in outfit_source
 
@@ -159,6 +164,8 @@ def test_character_build_has_color_only_cycles_preview() -> None:
     assert 'scene.cycles.device = "CPU"' in builder_source
     assert "Hair_FaceFrame_" in hair_source
     assert "Hair_BackLock_" in hair_source
+    assert "(0.0, 0.085, 5.145)" in hair_source
+    assert "width = 0.145 + (index % 2) * 0.025" in hair_source
     assert "Hair_SweptFringe_02" in hair_source
     assert "Face_EyelidCrease_" in (ROOT / "engine" / "blender" / "face.py").read_text(encoding="utf-8")
     assert "Outfit_TopNeckBinding" in (ROOT / "engine" / "blender" / "outfit.py").read_text(encoding="utf-8")

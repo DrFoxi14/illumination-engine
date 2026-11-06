@@ -1,4 +1,4 @@
-"""Build an expressive stylized face with inset eyes and sculpted-looking features."""
+"""Build a restrained stylized face with inset eyes and softer facial proportions."""
 
 from __future__ import annotations
 
@@ -17,25 +17,20 @@ def build_face(
     lip: bpy.types.Material,
     eye_scale: float = 1.0,
 ) -> list[bpy.types.Object]:
-    """Build eyes, eyelids, brows, nose, ears, and a small readable smile.
-
-    The old full ellipsoid socket created a visible concentric ring around each eye.
-    The revised design seats the eyeballs closer to the head and uses upper/lower
-    lid arcs to define the opening instead of a separate raised socket sphere.
-    """
+    """Build inset eyes, thin lids, softer brows, a smaller nose, and a closed smile."""
 
     objects: list[bpy.types.Object] = []
-    scale = eye_scale * 0.90
+    scale = eye_scale * 0.76
 
     for side, label in ((-1.0, "L"), (1.0, "R")):
         eye_x = side * 0.205
-        eye_y = -0.401
+        eye_y = -0.365
         eye_z = 4.765
 
         eye = create_ellipsoid(
             f"Face_Eyeball_{label}",
             (eye_x, eye_y, eye_z),
-            (0.135 * scale, 0.074, 0.119 * scale),
+            (0.126 * scale, 0.058, 0.105 * scale),
             eye_white,
             collection,
             segments=48,
@@ -44,8 +39,8 @@ def build_face(
         )
         iris_obj = create_ellipsoid(
             f"Face_Iris_{label}",
-            (eye_x - side * 0.006, -0.466, eye_z - 0.006),
-            (0.061 * scale, 0.020, 0.071 * scale),
+            (eye_x - side * 0.004, -0.416, eye_z - 0.004),
+            (0.052 * scale, 0.014, 0.060 * scale),
             iris,
             collection,
             segments=36,
@@ -54,8 +49,8 @@ def build_face(
         )
         pupil = create_ellipsoid(
             f"Face_Pupil_{label}",
-            (eye_x - side * 0.006, -0.481, eye_z - 0.006),
-            (0.032 * scale, 0.011, 0.044 * scale),
+            (eye_x - side * 0.004, -0.427, eye_z - 0.004),
+            (0.027 * scale, 0.008, 0.038 * scale),
             dark,
             collection,
             segments=28,
@@ -64,8 +59,8 @@ def build_face(
         )
         main_glint = create_ellipsoid(
             f"Face_EyeCatchlight_{label}",
-            (eye_x - side * 0.025, -0.493, eye_z + 0.027),
-            (0.018 * scale, 0.007, 0.022 * scale),
+            (eye_x - side * 0.022, -0.437, eye_z + 0.022),
+            (0.013 * scale, 0.004, 0.016 * scale),
             eye_white,
             collection,
             segments=20,
@@ -74,8 +69,8 @@ def build_face(
         )
         secondary_glint = create_ellipsoid(
             f"Face_EyeSpark_{label}",
-            (eye_x + side * 0.020, -0.491, eye_z - 0.028),
-            (0.008 * scale, 0.004, 0.010 * scale),
+            (eye_x + side * 0.018, -0.435, eye_z - 0.025),
+            (0.006 * scale, 0.003, 0.008 * scale),
             eye_white,
             collection,
             segments=12,
@@ -87,11 +82,11 @@ def build_face(
         upper_lid = create_sweep(
             f"Face_UpperEyelid_{label}",
             [
-                (side * 0.350, -0.432, 4.754, 0.014, 0.012),
-                (side * 0.300, -0.461, 4.836, 0.018, 0.015),
-                (side * 0.205, -0.477, 4.866, 0.019, 0.016),
-                (side * 0.110, -0.461, 4.835, 0.017, 0.014),
-                (side * 0.064, -0.432, 4.770, 0.012, 0.011),
+                (side * 0.335, -0.397, 4.756, 0.010, 0.009),
+                (side * 0.292, -0.423, 4.825, 0.013, 0.010),
+                (side * 0.205, -0.431, 4.853, 0.014, 0.011),
+                (side * 0.118, -0.423, 4.824, 0.013, 0.010),
+                (side * 0.075, -0.397, 4.770, 0.009, 0.008),
             ],
             skin,
             collection,
@@ -102,11 +97,11 @@ def build_face(
         lower_lid = create_sweep(
             f"Face_LowerEyelid_{label}",
             [
-                (side * 0.345, -0.428, 4.755, 0.011, 0.010),
-                (side * 0.295, -0.450, 4.700, 0.014, 0.012),
-                (side * 0.205, -0.466, 4.684, 0.015, 0.013),
-                (side * 0.115, -0.450, 4.701, 0.014, 0.012),
-                (side * 0.067, -0.428, 4.770, 0.011, 0.010),
+                (side * 0.332, -0.395, 4.757, 0.008, 0.008),
+                (side * 0.290, -0.414, 4.707, 0.010, 0.009),
+                (side * 0.205, -0.423, 4.692, 0.011, 0.009),
+                (side * 0.120, -0.414, 4.708, 0.010, 0.009),
+                (side * 0.078, -0.395, 4.771, 0.008, 0.008),
             ],
             skin,
             collection,
@@ -117,9 +112,9 @@ def build_face(
         lid_crease = create_sweep(
             f"Face_EyelidCrease_{label}",
             [
-                (side * 0.105, -0.415, 4.900, 0.007, 0.007),
-                (side * 0.205, -0.435, 4.918, 0.009, 0.008),
-                (side * 0.300, -0.414, 4.885, 0.007, 0.007),
+                (side * 0.115, -0.397, 4.888, 0.005, 0.005),
+                (side * 0.205, -0.411, 4.901, 0.006, 0.005),
+                (side * 0.292, -0.397, 4.876, 0.005, 0.005),
             ],
             skin,
             collection,
@@ -130,12 +125,12 @@ def build_face(
         brow = create_sweep(
             f"Face_Brow_{label}",
             [
-                (side * 0.078, -0.414, 4.982, 0.019, 0.018),
-                (side * 0.185, -0.444, 5.018, 0.027, 0.022),
-                (side * 0.292, -0.417, 5.005, 0.025, 0.021),
-                (side * 0.370, -0.385, 4.969, 0.012, 0.012),
+                (side * 0.088, -0.388, 4.965, 0.012, 0.010),
+                (side * 0.190, -0.414, 4.994, 0.017, 0.012),
+                (side * 0.292, -0.393, 4.982, 0.015, 0.011),
+                (side * 0.366, -0.365, 4.954, 0.008, 0.007),
             ],
-            dark,
+            iris,
             collection,
             radial_segments=14,
             steps_per_span=6,
@@ -145,8 +140,8 @@ def build_face(
 
         ear = create_ellipsoid(
             f"Face_Ear_{label}",
-            (side * 0.515, 0.010, 4.575),
-            (0.094, 0.094, 0.154),
+            (side * 0.510, 0.010, 4.575),
+            (0.085, 0.082, 0.140),
             skin,
             collection,
             segments=32,
@@ -156,9 +151,9 @@ def build_face(
         inner_ear = create_sweep(
             f"Face_InnerEar_{label}",
             [
-                (side * 0.505, -0.078, 4.625, 0.010, 0.010),
-                (side * 0.540, -0.083, 4.575, 0.013, 0.012),
-                (side * 0.505, -0.078, 4.525, 0.008, 0.008),
+                (side * 0.503, -0.057, 4.620, 0.007, 0.007),
+                (side * 0.530, -0.066, 4.575, 0.009, 0.008),
+                (side * 0.505, -0.057, 4.530, 0.006, 0.006),
             ],
             skin,
             collection,
@@ -171,9 +166,9 @@ def build_face(
     nose_bridge = create_sweep(
         "Face_NoseBridge",
         [
-            (0.0, -0.385, 4.680, 0.040, 0.043),
-            (0.0, -0.428, 4.555, 0.050, 0.052),
-            (0.0, -0.469, 4.448, 0.068, 0.060),
+            (0.0, -0.374, 4.680, 0.030, 0.031),
+            (0.0, -0.407, 4.555, 0.038, 0.038),
+            (0.0, -0.445, 4.448, 0.050, 0.046),
         ],
         skin,
         collection,
@@ -183,8 +178,8 @@ def build_face(
     )
     nose_tip = create_ellipsoid(
         "Face_NoseTip",
-        (0.0, -0.485, 4.425),
-        (0.086, 0.073, 0.060),
+        (0.0, -0.457, 4.425),
+        (0.068, 0.058, 0.052),
         skin,
         collection,
         segments=36,
@@ -193,8 +188,8 @@ def build_face(
     )
     nose_wing_left = create_ellipsoid(
         "Face_NoseWing_L",
-        (-0.064, -0.468, 4.414),
-        (0.041, 0.038, 0.032),
+        (-0.052, -0.447, 4.414),
+        (0.032, 0.030, 0.025),
         skin,
         collection,
         segments=24,
@@ -203,8 +198,8 @@ def build_face(
     )
     nose_wing_right = create_ellipsoid(
         "Face_NoseWing_R",
-        (0.064, -0.468, 4.414),
-        (0.041, 0.038, 0.032),
+        (0.052, -0.447, 4.414),
+        (0.032, 0.030, 0.025),
         skin,
         collection,
         segments=24,
@@ -214,8 +209,8 @@ def build_face(
 
     mouth = create_ellipsoid(
         "Face_MouthOpening",
-        (0.0, -0.387, 4.199),
-        (0.126, 0.021, 0.043),
+        (0.0, -0.382, 4.198),
+        (0.096, 0.014, 0.026),
         dark,
         collection,
         segments=36,
@@ -224,8 +219,8 @@ def build_face(
     )
     teeth = create_ellipsoid(
         "Face_Teeth",
-        (0.0, -0.411, 4.214),
-        (0.085, 0.010, 0.016),
+        (0.0, -0.399, 4.207),
+        (0.062, 0.006, 0.008),
         eye_white,
         collection,
         segments=32,
@@ -235,11 +230,11 @@ def build_face(
     upper_lip = create_sweep(
         "Face_UpperLip",
         [
-            (-0.132, -0.392, 4.205, 0.010, 0.009),
-            (-0.068, -0.410, 4.220, 0.014, 0.011),
-            (0.0, -0.416, 4.211, 0.013, 0.010),
-            (0.068, -0.410, 4.220, 0.014, 0.011),
-            (0.132, -0.392, 4.205, 0.010, 0.009),
+            (-0.104, -0.386, 4.204, 0.007, 0.006),
+            (-0.052, -0.401, 4.214, 0.010, 0.007),
+            (0.0, -0.404, 4.207, 0.009, 0.007),
+            (0.052, -0.401, 4.214, 0.010, 0.007),
+            (0.104, -0.386, 4.204, 0.007, 0.006),
         ],
         lip,
         collection,
@@ -250,11 +245,11 @@ def build_face(
     lower_lip = create_sweep(
         "Face_LowerLip",
         [
-            (-0.120, -0.394, 4.190, 0.009, 0.009),
-            (-0.062, -0.414, 4.174, 0.015, 0.012),
-            (0.0, -0.417, 4.170, 0.016, 0.012),
-            (0.062, -0.414, 4.174, 0.015, 0.012),
-            (0.120, -0.394, 4.190, 0.009, 0.009),
+            (-0.098, -0.386, 4.190, 0.006, 0.006),
+            (-0.050, -0.402, 4.180, 0.010, 0.008),
+            (0.0, -0.405, 4.178, 0.011, 0.008),
+            (0.050, -0.402, 4.180, 0.010, 0.008),
+            (0.098, -0.386, 4.190, 0.006, 0.006),
         ],
         skin,
         collection,
