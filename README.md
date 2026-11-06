@@ -91,11 +91,11 @@ blender --background --factory-startup --python-exit-code 1 \
 For a shaded CPU Cycles color preview:
 
 ```bash
-blender --background --factory-startup --python-exit-code 1 \\
-  --python scripts/build_character.py -- \\
-  --output-dir outputs/color \\
-  --color-only \\
-  --preview-engine cycles \\
+blender --background --factory-startup --python-exit-code 1 \
+  --python scripts/build_character.py -- \
+  --output-dir outputs/color \
+  --color-only \
+  --preview-engine cycles \
   --preview-samples 16
 ```
 
